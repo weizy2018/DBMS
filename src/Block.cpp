@@ -18,7 +18,7 @@
 
 using namespace std;
 
-Block::Block(block_id blockId, Relation * rel) {
+Block::Block(block_id blockId, const Relation * rel) {
 	relation = rel;
     this->blockId = blockId;
     blockSize = 4;
@@ -39,7 +39,7 @@ Block::Block(block_id blockId, Relation * rel) {
 
     initBlock();
 }
-Block::Block(block_id blockId, Relation * rel, block_size blockSize){
+Block::Block(block_id blockId, const Relation * rel, block_size blockSize){
 	relation = rel;
 	this->blockId = blockId;
 	this->blockSize = blockSize;
@@ -60,7 +60,7 @@ Block::Block(block_id blockId, Relation * rel, block_size blockSize){
 	initBlock();
 }
 
-Block::Block(char * block, Relation * rel){
+Block::Block(char * block, const Relation * rel){
 	this->block = block;
 	this->relation = rel;
 	change = false;
@@ -222,7 +222,12 @@ void Block::parsedBlock(){
 
 
 void Block::printBlock(){
-
+	printf("block id : %u\n", blockId);
+	printf("block size : %d\n", blockSize);
+	printf("tups : %d\n", tups);
+	printf("free space : %d\n", freeSpace->getLength());
+	//输出块中的元组  调用Tuple中的构造函数以及printTuple()方法
+	//.....
 }
 
 

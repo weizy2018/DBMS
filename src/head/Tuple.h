@@ -19,7 +19,8 @@ class TupPosition;
 
 class Tuple {
 public:
-	Tuple(Relation *rel);
+	Tuple(const Relation * rel);
+	Tuple(char * tupData, const Relation * rel);
 	virtual ~Tuple();
 
 private:
@@ -29,7 +30,7 @@ private:
 	char * tupleData;						//元组的数据（数组表示）
 	vector<BasicType *> basicData;			//元组中不同类型的数据
 	vector<TupPosition *> tupPosition;		//变长记录的表示方法
-	Relation * relationDic;					//该元组对应的关系表
+	const Relation * relationDic;					//该元组对应的关系表
 public:
 	void addInteger(int data);
 	void addFload(float data);
@@ -39,9 +40,17 @@ public:
 
 	void processData();						//将数据的基本类型转换成线性表
 	char * getResult();						//返回转换结果
+	void printTuple();						//打印该元组
 private:
 	char * generateRowId();
 	void calTupleLen();
+private:
+	void parsedTuple();
+	void prasedInteger(int & index);
+	void prasedFload(int & index);
+	void prasedDouble(int & index);
+	void prasedChar(int & index, int len);
+	void prasedVarchar(int & index);
 };
 
 class TupPosition{

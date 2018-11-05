@@ -38,9 +38,9 @@ class Position;
 
 class Block {
 public:
-    Block(block_id blockId, Relation * rel);
-    Block(block_id blockId, Relation * rel, block_size blockSize);
-    Block(char * block, Relation * rel);
+    Block(block_id blockId, const Relation * rel);
+    Block(block_id blockId, const Relation * rel, block_size blockSize);
+    Block(char * block, const Relation * rel);
     virtual ~Block();
     
 public:
@@ -62,7 +62,7 @@ private:
 
     //-------块的定义-------
     char * block;                   //块
-    Relation * relation;
+    const Relation * relation;
 
     int dictionary[TUPLES_COUNT];   //块中每个元组的各个属性的类型(暂时还没用到)
 
@@ -79,9 +79,6 @@ public:
     void printBlock();              					//用于输出元组的内容
     int getFreespace();									//获取该块中剩余的空闲空间
     void addTuple(const char * p, int tupSsize);		//向该块中添加一个元组
-
-
-
 };
 
 class Position {

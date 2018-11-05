@@ -14,9 +14,12 @@ using namespace std;
 #include "head/Global.h"
 
 
-Tuple::Tuple(Relation * rel) {
+Tuple::Tuple(const Relation * rel):relationDic(rel) {
 	rowId = generateRowId();
-	relationDic = rel;
+}
+Tuple::Tuple(char * tupData, const Relation * rel):relationDic(rel){
+	this->tupleData = tupData;
+	parsedTuple();
 }
 
 Tuple::~Tuple() {
@@ -58,7 +61,7 @@ void Tuple::calTupleLen() {
 	unsigned fixed = 0;
 	//统计边长类型的个数
 	int varCount = 0;
-	int totalProperty = relationDic->getTotalProperty();
+	const int totalProperty = relationDic->getTotalProperty();
 	for (int i = 0; i < totalProperty; i++) {
 		if (relationDic->getTypeName(i) == Global::VARCHAR) {
 			varCount++;
@@ -84,6 +87,89 @@ void Tuple::calTupleLen() {
 	this->tupFixedLength = fixed;
 	cout << "tupTotalLength = " << len;
 	cout << "tupFixedLength = " << fixed;
+}
+void Tuple::parsedTuple() {
+	int index = 0;
+	//rowId
+	int rowIdLength = sizeof(time_t) + sizeof(int);
+	rowId = (char*)malloc(rowIdLength);
+	for (int i = 0; i < rowIdLength; i++){
+		rowId[i] = tupleData[index++];
+	}
+	for (int i = 0; i < relationDic->getTotalProperty(); i++){
+		switch(relationDic->getTypeName(i)){
+		case Global::INTEGER:
+			prasedInteger(index);
+			break;
+		case Global::FLOAT:
+			prasedFload(index);
+			break;
+		case Global::DOUBLE:
+			prasedDouble(index);
+			break;
+		case Global::CHAR:
+			prasedChar(index, relationDic->getTypeValue(i));
+			break;
+		case Global::VARCHAR:
+			prasedVarchar(index);
+			break;
+		}
+	}
+}
+void Tuple::prasedInteger(int & index){
+	int data;
+	char * d = (char*)&data;
+	for (unsigned int i = 0; i < sizeof(data); i++){
+		d[i] = tupleData[index++];
+	}
+	BasicType * in = new Integer(data);
+	basicData.push_back(in);
+}
+void Tuple::prasedFload(int & index){
+	float data;
+	char * f = (char*)&data;
+	for (unsigned int i = 0; i < sizeof(data); i++){
+		f[i] = tupleData[index++];
+	}
+	BasicType * fl = new Float(data);
+	basicData.push_back(fl);
+}
+void Tuple::prasedDouble(int & index){
+	double data;
+	char * d = (char*)&data;
+	for (unsigned int i = 0; i < sizeof(data); i++){
+		d[i] = tupleData[index++];
+	}
+	BasicType * db = new Double(data);
+	basicData.push_back(db);
+}
+void Tuple::prasedChar(int & index, int len){
+	char * data = (char*)malloc(len);
+	for (int i = 0; i < len; i++){
+		data[i] = tupleData[index++];
+	}
+	BasicType * ch = new Char(data, len);
+	basicData.push_back(ch);
+}
+void Tuple::prasedVarchar(int & index){
+	unsigned int start;
+	unsigned int len;
+	char * s = (char*)&start;
+	for (unsigned int i = 0; i < sizeof(start); i++){
+		s[i] = tupleData[index++];
+	}
+	char * le = (char*)&len;
+	for (unsigned int i = 0; i < sizeof(len); i++){
+		le[i] = tupleData[index++];
+	}
+	TupPosition * pos = new TupPosition(start, len);
+	tupPosition.push_back(pos);
+
+	char * data = (char*)malloc(len);
+	for (unsigned int i = start; i < len; i++){
+		data[i] = tupleData[start++];
+	}
+
 }
 
 void Tuple::addInteger(int data){
@@ -148,8 +234,37 @@ void Tuple::processData(){
 		}
 	}
 }
+
 char * Tuple::getResult() {
 	return tupleData;
+}
+void Tuple::printTuple() {
+	printf("rowId : %s\n", rowId);
+	for (unsigned int i = 0; i < basicData.size(); i++) {
+		switch(relationDic->getTypeName(i)) {
+		case Global::INTEGER:{
+			int * data1 = (int*)basicData.at(i)->getData();
+			printf("  %d", *data1);
+			break;
+		}
+		case Global::FLOAT:{
+			float * data2 = (float*)basicData.at(i)->getData();
+			printf("  %f", *data2);
+			break;
+		}
+		case Global::DOUBLE:{
+			double * data3 = (double*)basicData.at(i)->getData();
+			printf("  %f", *data3);
+			break;
+		}
+		case Global::CHAR:
+			printf("  %s", basicData.at(i)->getData());
+			break;
+		case Global::VARCHAR:
+			printf("  %s", basicData.at(i)->getData());
+			break;
+		}
+	}
 }
 
 //-------------------------------

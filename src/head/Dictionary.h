@@ -56,23 +56,24 @@ private:
 class Relation{
 
 public:
-	Relation(int totalProperty, char * relName, char * relFileName);
+	Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName);
 	~Relation();
 	void addType(int type, int value, int index);
-	int getTotalProperty();
-	int getTypeName(int index);
-	int getTypeValue(int index);
+	int getTotalProperty() const;
+	int getTypeName(int index) const;
+	int getTypeValue(int index) const;
 	
 	void setRelationName(char * relName);
-	char * getRelationName();
+	char * getRelationName() const;
 	void setRelationFileName(char * relFileName);
-	char * getRelationFileName();
+	char * getRelationFileName() const;
 
 	void printRelation();
 
 private:
 	char * relationName;
 	char * relationFileName;
+	unsigned int totalBlock;
     int totalProperty;
     int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
 

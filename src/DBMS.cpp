@@ -42,15 +42,17 @@ void DBMS::initialDictionary() {
     fscanf(dicFile, "%d", &totalRelationship);
     
     for (int i = 0; i < totalRelationship; i++) {
+    	unsigned int totalBlock;
         int totalProperty;
         char * relName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
         char * relFileName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
 
+        fscanf(dicFile, "%u", &totalBlock);
         fscanf(dicFile, "%d", &totalProperty);
         fscanf(dicFile, "%s", relName);
         fscanf(dicFile, "%s", relFileName);
 
-        Relation * rel = new Relation(totalProperty, relName, relFileName);
+        Relation * rel = new Relation(totalBlock, totalProperty, relName, relFileName);
 
         for (int j = 0; j < totalProperty; j++) {
             char * type = (char*) malloc(Global::TYPE_LENGTH);
