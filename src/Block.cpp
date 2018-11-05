@@ -18,15 +18,12 @@
 
 using namespace std;
 
-Block::Block(block_id blockId, int attr, int maxTupLength) {
-
-
-    fileName = nullptr;
-
+Block::Block(block_id blockId, Relation * rel) {
+	relation = rel;
     this->blockId = blockId;
     blockSize = 4;
     tups = 0;							//初始化块中包含的元组数为0
-    this->attr = attr;
+//    this->attr = tr;
 
     position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
     freeSpace = new Position(start, 1024*blockSize - start); 	//后面再计算具体的数据
@@ -36,18 +33,18 @@ Block::Block(block_id blockId, int attr, int maxTupLength) {
     change = false;
     block = (char*)malloc(1024*4);		//默认大小 4K
 
-    this->maxTupLength = maxTupLength;
-    maxTups = (1024*blockSize - sizeof(blockId) - sizeof(blockSize)
-    		- sizeof(Position) - sizeof(tups))/(sizeof(Position) + maxTupLength);//可容纳的最多的元组数
+//    this->maxTupLength = maxTupLen;
+//    maxTups = (1024*blockSize - sizeof(blockId) - sizeof(blockSize)
+//    		- sizeof(Position) - sizeof(tups))/(sizeof(Position) + maxTupLength);//可容纳的最多的元组数
 
     initBlock();
 }
-Block::Block(block_id blockId, int attr, int maxTupLength, block_size blockSize){
-	fileName = nullptr;
+Block::Block(block_id blockId, Relation * rel, block_size blockSize){
+	relation = rel;
 	this->blockId = blockId;
 	this->blockSize = blockSize;
 	tups = 0;
-	this->attr = attr;
+//	this->attr = tr;
 
 	position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
 	freeSpace = new Position(start, 1024*blockSize - start);
@@ -56,20 +53,28 @@ Block::Block(block_id blockId, int attr, int maxTupLength, block_size blockSize)
 
 	change = false;
 	block = (char*)malloc(1024*blockSize);
-	this->maxTupLength = maxTupLength;
-	maxTups = (1024*blockSize - sizeof(blockId) - sizeof(blockSize)
-    		- sizeof(Position) - sizeof(tups))/(sizeof(Position) + maxTupLength);
+//	this->maxTupLength = maxTupLen;
+//	maxTups = (1024*blockSize - sizeof(blockId) - sizeof(blockSize)
+//    		- sizeof(Position) - sizeof(tups))/(sizeof(Position) + maxTupLength);
 
 	initBlock();
+}
+
+Block::Block(char * block, Relation * rel){
+	this->block = block;
+	this->relation = rel;
+	change = false;
+	parsedBlock();
 }
 
 Block::~Block() {
 	free(block);
 	while (!pos.empty()){
 		Position * p = pos.back();
-		delete p;
 		pos.pop_back();
+		delete p;
 	}
+	delete freeSpace;
 	cout << "~Block()" << endl;
 
 }
@@ -171,6 +176,48 @@ void Block::addTuple(const char *p, int tupSize){
 	updateTups(tups+1);
 	addPosition(ps);
 	updateFreeSpace(freeSpace->getStart() + POSITION_SIZE, freeSpace->getLength() - POSITION_SIZE - tupSize);
+}
+
+void Block::parsedBlock(){
+	int index = 0;
+	//blockId
+	char * bId = (char*)&blockId;
+	for (unsigned int i = 0; i < sizeof(blockId); i++){
+		bId[i] = block[index++];
+	}
+	//blockSize
+	char * bs = (char*)&blockSize;
+	for (unsigned int i = 0; i < sizeof(blockSize); i++) {
+		bs[i] = block[index++];
+	}
+	//freeSpace
+	position_start start;
+	offset_length length;
+	char * st = (char*)&start;
+	for (unsigned int i = 0; i < sizeof(start); i++) {
+		st[i] = block[index++];
+	}
+	char * lh = (char*)&length;
+	for (unsigned int i = 0; i < sizeof(length); i++) {
+		lh[i] = block[index++];
+	}
+	freeSpace = new Position(start, length);
+	//tups
+	char * tp = (char*)&tups;
+	for (unsigned int i = 0; i < sizeof(tups); i++){
+		tp[i] = block[index++];
+	}
+	//pos
+	for (int i = 0; i < tups; i++) {
+		for (unsigned int j = 0; j < sizeof(start); j++) {
+				st[j] = block[index++];
+		}
+		for (unsigned int j = 0; j < sizeof(length); j++) {
+				lh[j] = block[index++];
+		}
+		Position * p = new Position(start, length);
+		pos.push_back(p);
+	}
 }
 
 

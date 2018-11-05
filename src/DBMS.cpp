@@ -31,32 +31,26 @@ DBMS::~DBMS() {
 }
 
 void DBMS::initialDictionary() {
+	cout << "DBMS::inititalDictionary" << endl;
     FILE * dicFile;
 
-    if ((dicFile = fopen("dictionary.dic", "r")) == NULL) {
+    if ((dicFile = fopen("school.dic", "r")) == NULL) {
         cout << "can't open the file dictionary.dic" << endl;
         exit(0);
     }
     int totalRelationship;
     fscanf(dicFile, "%d", &totalRelationship);
     
-    Dictionary::getDictionary()->setTotalRelation(totalRelationship);
-    
-    for (int i = 0; i < totalRelationship; i++) {
-        char * reName = (char*) malloc(Global::MAX_RELATIONSHIP_NAME);
-        fscanf(dicFile, "%s", reName);
-        Dictionary::getDictionary()->addRelationName(reName, i);
-    }
-    for (int i = 0; i < totalRelationship; i++) {
-        char * reFileName = (char*) malloc(Global::MAX_RELATIONSHIP_FILE_NAME);
-        fscanf(dicFile, "%s", reFileName);
-        Dictionary::getDictionary()->addRelationFileName(reFileName, i);
-    }
     for (int i = 0; i < totalRelationship; i++) {
         int totalProperty;
-        fscanf(dicFile, "%d", &totalProperty);
+        char * relName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
+        char * relFileName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
 
-        Relation * rel = new Relation(totalProperty);
+        fscanf(dicFile, "%d", &totalProperty);
+        fscanf(dicFile, "%s", relName);
+        fscanf(dicFile, "%s", relFileName);
+
+        Relation * rel = new Relation(totalProperty, relName, relFileName);
 
         for (int j = 0; j < totalProperty; j++) {
             char * type = (char*) malloc(Global::TYPE_LENGTH);
@@ -83,6 +77,6 @@ void DBMS::initialDictionary() {
 
     fclose(dicFile);
     
-    printf("initial success!!!");
+    printf("initial success!!!\n");
 }
 

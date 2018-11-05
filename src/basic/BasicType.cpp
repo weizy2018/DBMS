@@ -67,7 +67,7 @@ unsigned int Double::getDataLength(){
 
 ///---------------------------------------------------
 Char::Char(const char *adata, unsigned int dataLength){
-	this->dataLength = dataLength;
+	this->dataLength = dataLength;		//该类型的数据长度应该是创建的时候定义好的长度
 
 	data = (char*)malloc(dataLength);
 	for (unsigned int i = 0; i < dataLength; i++){

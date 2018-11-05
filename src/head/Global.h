@@ -25,8 +25,8 @@ public:
     const static int CHAR    = 4;
     const static int VARCHAR = 5;
 	
-	const static int MAX_RELATIONSHIP_NAME = 20;
-	const static int MAX_RELATIONSHIP_FILE_NAME = 25;
+	const static int MAX_RELATION_NAME = 20;
+	const static int MAX_RELATION_FILE_NAME = 25;
 	
 	const static int TYPE_LENGTH = 10;	 //属性的名称长度
 

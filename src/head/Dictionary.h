@@ -28,7 +28,7 @@ class Dictionary {
 
 public:
     static Dictionary * getDictionary();
-    static void releaseDictionary();
+    void releaseDictionary();
 private:
     static Dictionary * dic;
 
@@ -41,15 +41,6 @@ public:
     virtual ~Dictionary();
 
 public:
-	void setTotalRelation(int totalRelationship);
-	int getTotalRelation();
-	
-    void addRelationName(char * reName, int cnt);
-    char * getRelationName(int index);
-
-    void addRelationFileName(char * reFileName, int cnt);
-    char * getRelationFileName(int index);
-
     void addRelation(Relation * rel);
     Relation * getaRelation(int index);
 	
@@ -58,10 +49,6 @@ public:
 protected:
 
 private:
-    int totalRelation;
-    char *relationName[MAX_RELATIONSHIP];
-    char *relationFileName[MAX_RELATIONSHIP];
-
     vector<Relation*> relations;
 
 };
@@ -69,16 +56,23 @@ private:
 class Relation{
 
 public:
-	Relation(int totalProperty);
-	
+	Relation(int totalProperty, char * relName, char * relFileName);
+	~Relation();
 	void addType(int type, int value, int index);
 	int getTotalProperty();
 	int getTypeName(int index);
 	int getTypeValue(int index);
 	
+	void setRelationName(char * relName);
+	char * getRelationName();
+	void setRelationFileName(char * relFileName);
+	char * getRelationFileName();
+
 	void printRelation();
 
 private:
+	char * relationName;
+	char * relationFileName;
     int totalProperty;
     int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
 
