@@ -21,6 +21,7 @@ class Tuple {
 public:
 	Tuple(const Relation * rel);
 	Tuple(char * tupData, const Relation * rel);
+//	Tuple(const char * tupData, int start, const Relation * rel);
 	virtual ~Tuple();
 
 private:
@@ -30,7 +31,7 @@ private:
 	char * tupleData;						//元组的数据（数组表示）
 	vector<BasicType *> basicData;			//元组中不同类型的数据
 	vector<TupPosition *> tupPosition;		//变长记录的表示方法
-	const Relation * relationDic;					//该元组对应的关系表
+	const Relation * relationDic;			//该元组对应的关系表
 public:
 	void addInteger(int data);
 	void addFload(float data);
@@ -40,12 +41,13 @@ public:
 
 	void processData();						//将数据的基本类型转换成线性表
 	char * getResult();						//返回转换结果
+	unsigned int getTupLength();
 	void printTuple();						//打印该元组
 private:
 	char * generateRowId();
 	void calTupleLen();
 private:
-	void parsedTuple();
+	void parsedTuple(int start);
 	void prasedInteger(int & index);
 	void prasedFload(int & index);
 	void prasedDouble(int & index);

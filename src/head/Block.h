@@ -78,7 +78,7 @@ private:
 public:
     void printBlock();              					//用于输出元组的内容
     int getFreespace();									//获取该块中剩余的空闲空间
-    void addTuple(const char * p, int tupSsize);		//向该块中添加一个元组
+    void addTuple(const char * p, int tupSize);		//向该块中添加一个元组
 };
 
 class Position {

@@ -12,15 +12,23 @@ using namespace std;
 
 #include "head/Tuple.h"
 #include "head/Global.h"
-
+#include "tools/head/tools.h"
 
 Tuple::Tuple(const Relation * rel):relationDic(rel) {
-	rowId = generateRowId();
+	tupleData = nullptr;
+	tupTotalLength = 0;
+	tupFixedLength = 0;
+	rowId = Tools::getToolsInst()->generateRowId();
 }
 Tuple::Tuple(char * tupData, const Relation * rel):relationDic(rel){
 	this->tupleData = tupData;
-	parsedTuple();
+	parsedTuple(0);
 }
+//Tuple::Tuple(const char * tupData, int start, const Relation * rel) {
+//	this->tupleData = tupData;
+//	this->relationDic = rel;
+//	parsedTuple(start);
+//}
 
 Tuple::~Tuple() {
 	free(rowId);
@@ -43,6 +51,8 @@ char * Tuple::generateRowId(){
 	time_t t = time(0);
 	srand(0);
 	int ran = rand();
+
+	cout << "time_t : " << t << "  ran : " << ran << endl;
 
 	int index = 0;
 	char * p = (char*)&t;
@@ -85,11 +95,11 @@ void Tuple::calTupleLen() {
 	}
 	this->tupTotalLength = len;
 	this->tupFixedLength = fixed;
-	cout << "tupTotalLength = " << len;
-	cout << "tupFixedLength = " << fixed;
+//	cout << "tupTotalLength = " << len;
+//	cout << "  tupFixedLength = " << fixed << endl;
 }
-void Tuple::parsedTuple() {
-	int index = 0;
+void Tuple::parsedTuple(int start) {
+	int index = start;
 	//rowId
 	int rowIdLength = sizeof(time_t) + sizeof(int);
 	rowId = (char*)malloc(rowIdLength);
@@ -152,8 +162,8 @@ void Tuple::prasedChar(int & index, int len){
 	basicData.push_back(ch);
 }
 void Tuple::prasedVarchar(int & index){
-	unsigned int start;
-	unsigned int len;
+	unsigned short start;
+	unsigned short len;
 	char * s = (char*)&start;
 	for (unsigned int i = 0; i < sizeof(start); i++){
 		s[i] = tupleData[index++];
@@ -164,12 +174,12 @@ void Tuple::prasedVarchar(int & index){
 	}
 	TupPosition * pos = new TupPosition(start, len);
 	tupPosition.push_back(pos);
-
 	char * data = (char*)malloc(len);
-	for (unsigned int i = start; i < len; i++){
+	for (unsigned int i = 0; i < len; i++){
 		data[i] = tupleData[start++];
 	}
-
+	Varchar * vc = new Varchar(data, len);
+	basicData.push_back(vc);
 }
 
 void Tuple::addInteger(int data){
@@ -201,13 +211,13 @@ void Tuple::processData(){
 
 	int rowIdLength = sizeof(time_t) + sizeof(int); //用于存放RowId的长度
 	for (int i = 0; i < rowIdLength; i++){
-		tupleData[index] = rowId[i];
+		tupleData[index++] = rowId[i];
 	}
 	for (unsigned int i = 0; i < basicData.size(); i++) {
 		BasicType * b = basicData.at(i);
 		if (relationDic->getTypeName(i) == Global::VARCHAR){	//存入变长记录
-			unsigned int start = index;
-			unsigned int len = b->getDataLength();
+			unsigned short start = varIndex;
+			unsigned short len = b->getDataLength();
 			char * d = b->getData();
 			//这个暂时好像还没什么用， 先存起来吧
 			TupPosition * pos = new TupPosition(start, len);
@@ -238,8 +248,22 @@ void Tuple::processData(){
 char * Tuple::getResult() {
 	return tupleData;
 }
+unsigned int Tuple::getTupLength() {
+	return tupTotalLength;
+}
 void Tuple::printTuple() {
-	printf("rowId : %s\n", rowId);
+	time_t ti;
+	int index = 0;
+	char * p = (char*)&ti;
+	for (unsigned int i = 0; i < sizeof(ti); i++) {
+		p[i] = tupleData[index++];
+	}
+	int ran;
+	p = (char*)&ran;
+	for (unsigned int i = 0; i < sizeof(ran); i++) {
+		p[i] = tupleData[index++];
+	}
+	printf("rowId : %ld %d\n", ti, ran);
 	for (unsigned int i = 0; i < basicData.size(); i++) {
 		switch(relationDic->getTypeName(i)) {
 		case Global::INTEGER:{

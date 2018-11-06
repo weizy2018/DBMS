@@ -8,6 +8,8 @@
 #include "head/BasicType.h"
 
 #include <stdlib.h>
+#include <iostream>
+using namespace std;
 
 Integer::Integer(int data){
 	this->data = data;
@@ -69,10 +71,11 @@ unsigned int Double::getDataLength(){
 Char::Char(const char *adata, unsigned int dataLength){
 	this->dataLength = dataLength;		//该类型的数据长度应该是创建的时候定义好的长度
 
-	data = (char*)malloc(dataLength);
+	data = (char*)malloc(dataLength+1);
 	for (unsigned int i = 0; i < dataLength; i++){
 		data[i] = adata[i];
 	}
+	data[dataLength] = '\0';
 }
 Char::~Char(){
 	free(data);
@@ -87,11 +90,11 @@ unsigned int Char::getDataLength(){
 ///-----------------------------------------------
 Varchar::Varchar(char * adata, unsigned int dataLength){
 	this->dataLength = dataLength;
-
-	data = (char*)malloc(dataLength);
+	data = (char*)malloc(dataLength+1);
 	for (unsigned int i = 0; i < dataLength; i++){
 		data[i] = adata[i];
 	}
+	data[dataLength] = '\0';
 }
 Varchar::~Varchar(){
 	free(data);

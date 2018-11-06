@@ -12,6 +12,7 @@
  */
 
 #include "head/Block.h"
+#include "head/Tuple.h"
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
@@ -26,9 +27,7 @@ Block::Block(block_id blockId, const Relation * rel) {
 //    this->attr = tr;
 
     position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
-    freeSpace = new Position(start, 1024*blockSize - start); 	//后面再计算具体的数据
-
-    cout << "start position : " << start << endl;
+    freeSpace = new Position(start, 1024*blockSize - start);
 
     change = false;
     block = (char*)malloc(1024*4);		//默认大小 4K
@@ -48,8 +47,6 @@ Block::Block(block_id blockId, const Relation * rel, block_size blockSize){
 
 	position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
 	freeSpace = new Position(start, 1024*blockSize - start);
-
-	cout << "start position : " << start << endl;
 
 	change = false;
 	block = (char*)malloc(1024*blockSize);
@@ -75,8 +72,6 @@ Block::~Block() {
 		delete p;
 	}
 	delete freeSpace;
-	cout << "~Block()" << endl;
-
 }
 
 void Block::initBlock(){
@@ -112,8 +107,6 @@ void Block::initBlock(){
 	for (unsigned int i = 0; i < sizeof(tups); i++,tup++,index++){
 		b[index] = *tup;
 	}
-
-	cout << "index = " << index <<endl;
 }
 
 int Block::getFreespace(){
@@ -165,9 +158,10 @@ void Block::addPosition(Position * position){
 }
 
 void Block::addTuple(const char *p, int tupSize){
-	Position * ps = new Position(freeSpace->getStart(), tupSize);
+//	Position * ps = new Position(freeSpace->getStart(), tupSize);
 
 	int blockIndex = freeSpace->getStart() + freeSpace->getLength() - tupSize;
+	Position * ps = new Position(blockIndex, tupSize);
 	char * b = block;
 	for (int i = 0; i < tupSize; i++, blockIndex++){
 		b[blockIndex] = p[i];
@@ -226,8 +220,19 @@ void Block::printBlock(){
 	printf("block size : %d\n", blockSize);
 	printf("tups : %d\n", tups);
 	printf("free space : %d\n", freeSpace->getLength());
-	//输出块中的元组  调用Tuple中的构造函数以及printTuple()方法
-	//.....
+
+	for (int i = 0; i < tups; i++) {
+		position_start start = pos.at(i)->getStart();
+		offset_length len = pos.at(i)->getLength();
+		cout << "start : " << start << "  len : " << len << endl;
+		char * b = (char*)malloc(len);
+		for (int i = 0; i < len; i++){
+			b[i] = block[start++];
+		}
+		Tuple * tuple = new Tuple(b, relation);
+		tuple->printTuple();
+		delete tuple;
+	}
 }
 
 

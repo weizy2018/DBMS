@@ -11,6 +11,8 @@
 
 #include "head/DBMS.h"
 #include "head/Block.h"
+#include "head/Tuple.h"
+#include "tools/head/tools.h"
 
 using namespace std;
 
@@ -25,16 +27,35 @@ int main(int argc, char** argv) {
     dbms->initialDictionary();
     Dictionary::getDictionary()->printDictionary();
 
-//    Block * block1 = new Block(0, 3, 44);
-//    Block * block2 = new Block(1, 3, 44, 8);
+    Tuple * tup1 = new Tuple(Dictionary::getDictionary()->getaRelation(0));
+    char cch[] = "abc";
+    char vvch[] = "def";
+    tup1->addChar(cch, 20);
+    tup1->addVarchar(vvch, 3);
+    tup1->addInteger(66);
+    tup1->processData();
 
-//    cout << "Block1 : " << block1->getMaxTups() << endl;
-//    cout << "Block2 : " << block2->getMaxTups() << endl;
+    Tuple * tup2 = new Tuple(Dictionary::getDictionary()->getaRelation(0));
+    char cch2[] = "abcd";
+    char vvch2[] = "defg";
+    tup2->addChar(cch2, 20);
+    tup2->addVarchar(vvch2, 4);
+    tup2->addInteger(88);
+    tup2->processData();
 
-//    delete block1;
-//    delete block2;
+    unsigned int a = 0;
+    Block * block = new Block(a, Dictionary::getDictionary()->getaRelation(0));
+    block->addTuple(tup1->getResult(), tup1->getTupLength());
+    block->addTuple(tup2->getResult(), tup2->getTupLength());
+    cout << "----------------------------------------" << endl;
+    block->printBlock();
+
+    delete block;
+    delete tup2;
+    delete tup1;
 
     Dictionary::getDictionary()->releaseDictionary();
+    Tools::getToolsInst()->releaseInst();
 
     return 0;
 }
