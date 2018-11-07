@@ -15,16 +15,20 @@
 #define DBMS_H
 
 #include "Dictionary.h"
+#include "../tools/head/lru.h"
+#include "Block.h"
 
 class DBMS {
 public:
 	DBMS();
 	DBMS(const DBMS& orig);
 	virtual ~DBMS();
-private:
 
 public:
 	void initialDictionary();
+	void test();
+private:
+	LruCache<string, Block *> * lru;
 
 };
 

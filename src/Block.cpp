@@ -72,6 +72,7 @@ Block::~Block() {
 		delete p;
 	}
 	delete freeSpace;
+	cout << "~Block()" << endl;
 }
 
 void Block::initBlock(){
@@ -224,13 +225,14 @@ void Block::printBlock(){
 	for (int i = 0; i < tups; i++) {
 		position_start start = pos.at(i)->getStart();
 		offset_length len = pos.at(i)->getLength();
-		cout << "start : " << start << "  len : " << len << endl;
+//		cout << "start : " << start << "  len : " << len << endl;
 		char * b = (char*)malloc(len);
 		for (int i = 0; i < len; i++){
 			b[i] = block[start++];
 		}
 		Tuple * tuple = new Tuple(b, relation);
 		tuple->printTuple();
+		cout << endl;
 		delete tuple;
 	}
 }

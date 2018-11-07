@@ -15,19 +15,22 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 #include "head/DBMS.h"
 #include "head/Global.h"
+#include "head/Tuple.h"
 
 using namespace std;
 
 DBMS::DBMS() {
+	lru = new LruCache<string, Block *>(3);
 }
 
-DBMS::DBMS(const DBMS& orig) {
-}
 
 DBMS::~DBMS() {
+	delete lru;
+
 }
 
 void DBMS::initialDictionary() {
@@ -81,4 +84,65 @@ void DBMS::initialDictionary() {
     
     printf("initial success!!!\n");
 }
+void DBMS::test() {
+	FILE * testFile;
+	if ((testFile = fopen("testFile.ts", "r")) == NULL) {
+		printf ("can't open file testFile.ts\n");
+		return;
+	}
+	unsigned int totalBlock = Dictionary::getDictionary()->getRelation(0)->getTotalBlock();
+	Block * block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(0));
+	string blockName(Dictionary::getDictionary()->getRelation(0)->getRelationName());
+	string id = to_string(totalBlock);
+	blockName.append(id);
+
+	for (int i = 0; i < 500; i++) {
+		char name1[20];
+		char name2[20];
+		int num;
+		fscanf(testFile, "%s%s%d", name1, name2, &num);
+		Tuple * tup = new Tuple(Dictionary::getDictionary()->getRelation(0));
+		tup->addChar(name1, Dictionary::getDictionary()->getRelation(0)->getTypeValue(0));
+		tup->addVarchar(name2, strlen(name2));
+		tup->addInteger(num);
+		tup->processData();
+//		cout << "freespace : " << block->getFreespace() << endl;
+		if (block->getFreespace() > 200) {
+			block->addTuple(tup->getResult(), tup->getTupLength());
+		} else {
+			Block * b = lru->put(blockName, block);
+			if (b) {
+				b->printBlock();
+				delete b;
+			}
+			totalBlock += 1;
+			Relation * r = Dictionary::getDictionary()->getRelation(0);
+			r->setTotalBlock(totalBlock);
+			totalBlock = Dictionary::getDictionary()->getRelation(0)->getTotalBlock();
+			block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(0));
+			id = to_string(totalBlock);
+			blockName = Dictionary::getDictionary()->getRelation(0)->getRelationName();
+			blockName.append(id);
+
+			block->addTuple(tup->getResult(), tup->getTupLength());
+		}
+		delete tup;
+	}
+	fclose(testFile);
+	cout << "test() finish" << endl;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 

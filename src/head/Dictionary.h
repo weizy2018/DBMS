@@ -42,9 +42,12 @@ public:
 
 public:
     void addRelation(Relation * rel);
-    Relation * getaRelation(int index);
+    Relation * getRelation(int index);
+    Relation * getRelation(char * relationname);
 	
 	void printDictionary(); //输出该字典到控制台上
+
+	void writeBack();		//对字典更新后写回文件
 
 protected:
 
@@ -67,6 +70,9 @@ public:
 	char * getRelationName() const;
 	void setRelationFileName(char * relFileName);
 	char * getRelationFileName() const;
+
+	unsigned int getTotalBlock();
+	void setTotalBlock(unsigned int totalBlock);
 
 	void printRelation();
 

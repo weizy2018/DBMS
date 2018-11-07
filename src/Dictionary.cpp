@@ -15,6 +15,10 @@
 #include <stdlib.h>
 #include <vector>
 #include <stdio.h>
+#include <string.h>
+#include "head/Global.h"
+#include <iostream>
+using namespace std;
 
 Dictionary * Dictionary::dic = nullptr;
 
@@ -47,8 +51,19 @@ Dictionary::~Dictionary(){
 void Dictionary::addRelation(Relation * rel){
     relations.push_back(rel);
 }
-Relation * Dictionary::getaRelation(int index){
+Relation * Dictionary::getRelation(int index){
     return relations.at(index);
+}
+Relation * Dictionary::getRelation(char * relationName) {
+	Relation * r = nullptr;
+	for (vector<Relation *>::iterator it = relations.begin(); it != relations.end(); it++) {
+		const char * rName = (*it)->getRelationName();
+		if (strcmp(relationName, rName) == 0) {
+			r =  *it;
+			break;
+		}
+	}
+	return r;
 }
 
 
@@ -58,6 +73,43 @@ void Dictionary::printDictionary(){
 		rel->printRelation();
 	}
     
+}
+void Dictionary::writeBack() {
+	FILE * dic;
+	if ((dic = fopen("dictionary2.dic", "w")) == NULL) {
+		printf ("can't opent file dicitonary2.dic\n");
+		return;
+	}
+	fprintf(dic, "%ld\n", relations.size());
+	for (auto it = relations.begin(); it != relations.end(); it++) {
+		fprintf(dic, "%d\n", (*it)->getTotalBlock());
+		fprintf(dic, "%d\n", (*it)->getTotalProperty());
+		fprintf(dic, "%s\n", (*it)->getRelationName());
+		fprintf(dic, "%s\n", (*it)->getRelationFileName());
+		int total = (*it)->getTotalProperty();
+		for (int i = 0; i < total; i++) {
+			char attrName[10];
+			switch((*it)->getTypeName(i)) {
+			case Global::INTEGER:
+				strcpy(attrName, "int");
+				break;
+			case Global::FLOAT:
+				strcpy(attrName, "float");
+				break;
+			case Global::DOUBLE:
+				strcpy(attrName, "double");
+				break;
+			case Global::CHAR:
+				strcpy(attrName, "char");
+				break;
+			case Global::VARCHAR:
+				strcpy(attrName, "varchar");
+				break;
+			}
+			fprintf(dic, "%s %d\n", attrName, (*it)->getTypeValue(i));
+		}
+		fprintf(dic, "\n");
+	}
 }
 
 
@@ -104,6 +156,13 @@ void Relation::setRelationFileName(char * relFileName){
 }
 char * Relation::getRelationFileName() const{
 	return relationFileName;
+}
+
+unsigned int Relation::getTotalBlock() {
+	return totalBlock;
+}
+void Relation::setTotalBlock(unsigned int totalBlock) {
+	this->totalBlock = totalBlock;
 }
 
 
