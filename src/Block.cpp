@@ -13,6 +13,7 @@
 
 #include "head/Block.h"
 #include "head/Tuple.h"
+#include "exception/head/FileNotFoundException.h"
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
@@ -29,7 +30,7 @@ Block::Block(block_id blockId, const Relation * rel) {
     position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
     freeSpace = new Position(start, 1024*blockSize - start);
 
-    change = false;
+    change = true;
     block = (char*)malloc(1024*4);		//默认大小 4K
 
 //    this->maxTupLength = maxTupLen;
@@ -48,7 +49,7 @@ Block::Block(block_id blockId, const Relation * rel, block_size blockSize){
 	position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
 	freeSpace = new Position(start, 1024*blockSize - start);
 
-	change = false;
+	change = true;
 	block = (char*)malloc(1024*blockSize);
 //	this->maxTupLength = maxTupLen;
 //	maxTups = (1024*blockSize - sizeof(blockId) - sizeof(blockSize)
@@ -65,6 +66,7 @@ Block::Block(char * block, const Relation * rel){
 }
 
 Block::~Block() {
+	writeBack();
 	free(block);
 	while (!pos.empty()){
 		Position * p = pos.back();
@@ -160,6 +162,7 @@ void Block::addPosition(Position * position){
 
 void Block::addTuple(const char *p, int tupSize){
 //	Position * ps = new Position(freeSpace->getStart(), tupSize);
+	change = true;
 
 	int blockIndex = freeSpace->getStart() + freeSpace->getLength() - tupSize;
 	Position * ps = new Position(blockIndex, tupSize);
@@ -212,6 +215,24 @@ void Block::parsedBlock(){
 		}
 		Position * p = new Position(start, length);
 		pos.push_back(p);
+	}
+}
+void Block::writeBack() {
+	//如果块中的数据发生该表 change = true 则将数据写回文件
+	if (change) {
+		cout << "Block::writeBack blockId = " << blockId << " blockSize: " << blockSize << endl;
+		string url(Dictionary::getDictionary()->getCurDatabaseName());
+		url = "data/" + url + "/";	//data/school/
+		url.append(relation->getRelationFileName());	// data/school/student.rel  data/school/teacher.rel
+//		cout << "Block::writeBack :" <<  url << endl;
+		FILE * f;
+		if ((f = fopen(url.c_str(), "wb")) == NULL) {	//测试阶段用"wb"模式写入  到时候要改成"ab"模式
+			throw FileNotFoundException("can't open file : " + url);
+		}
+		fseek(f, 1024*blockSize*blockId, SEEK_SET);
+		cout << "Block::writeBack ftell() = " << ftell(f) << endl;
+		fwrite(block, 1024*blockSize, 1, f);
+		fclose(f);
 	}
 }
 

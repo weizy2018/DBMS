@@ -1,0 +1,16 @@
+2
+
+0
+3
+student
+student.rel
+char 20
+varchar 20
+int -1 
+
+0
+2
+preference
+preference.rel
+char 20
+varchar 30

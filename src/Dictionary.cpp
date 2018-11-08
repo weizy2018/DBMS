@@ -12,6 +12,7 @@
  */
 
 #include "head/Dictionary.h"
+#include "exception/head/FileNotFoundException.h"
 #include <stdlib.h>
 #include <vector>
 #include <stdio.h>
@@ -30,7 +31,7 @@ Dictionary * Dictionary::getDictionary(){
 }
 
 Dictionary::Dictionary(){
-
+	curDatabaseName = nullptr;
 }
 
 void Dictionary::releaseDictionary(){
@@ -45,7 +46,12 @@ Dictionary::~Dictionary(){
     	relations.pop_back();
     }
 }
-
+void Dictionary::setCurDatabaseName(const char * curDBName) {
+	curDatabaseName = curDBName;
+}
+const char * Dictionary::getCurDatabaseName() const {
+	return curDatabaseName;
+}
 
 
 void Dictionary::addRelation(Relation * rel){
@@ -76,13 +82,13 @@ void Dictionary::printDictionary(){
 }
 void Dictionary::writeBack() {
 	FILE * dic;
-	if ((dic = fopen("dictionary2.dic", "w")) == NULL) {
-		printf ("can't opent file dicitonary2.dic\n");
-		return;
+	if ((dic = fopen("data/dictionary2.dic", "w")) == NULL) {
+		printf ("can't opent file dicitonary22222.dic\n");
+		throw FileNotFoundException();
 	}
-	fprintf(dic, "%ld\n", relations.size());
+	fprintf(dic, "%ld\n\n", relations.size());
 	for (auto it = relations.begin(); it != relations.end(); it++) {
-		fprintf(dic, "%d\n", (*it)->getTotalBlock());
+		fprintf(dic, "%u\n", (*it)->getTotalBlock());
 		fprintf(dic, "%d\n", (*it)->getTotalProperty());
 		fprintf(dic, "%s\n", (*it)->getRelationName());
 		fprintf(dic, "%s\n", (*it)->getRelationFileName());
@@ -110,6 +116,7 @@ void Dictionary::writeBack() {
 		}
 		fprintf(dic, "\n");
 	}
+	fclose(dic);
 }
 
 
@@ -140,7 +147,11 @@ void Relation::printRelation(){
 	printf("relation name : %s\n", relationName);
 	printf("relation file name : %s\n", relationFileName);
 	printf("total block : %u\n", totalBlock);
+	for (unsigned int i = 0; i < attribute.size(); i++) {
+		cout << attribute[i] << " " ;
+	}
 
+	cout << endl;
     for (int i = 0; i < totalProperty; i++){
         printf("%d\t%d\n", type[i][0], type[i][1]);
     }
@@ -163,6 +174,10 @@ unsigned int Relation::getTotalBlock() {
 }
 void Relation::setTotalBlock(unsigned int totalBlock) {
 	this->totalBlock = totalBlock;
+}
+void Relation::addAttribute(char * attrName) {
+	string str(attrName);
+	attribute.push_back(str);
 }
 
 

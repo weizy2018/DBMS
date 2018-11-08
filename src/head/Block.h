@@ -16,6 +16,7 @@
 #include<vector>
 #include "Dictionary.h"
 
+
 using namespace std;
 
 //一些block头部信息的开始位置
@@ -79,6 +80,7 @@ public:
     void printBlock();              					//用于输出元组的内容
     int getFreespace();									//获取该块中剩余的空闲空间
     void addTuple(const char * p, int tupSize);		//向该块中添加一个元组
+    void writeBack();
 };
 
 class Position {

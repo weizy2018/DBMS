@@ -7,7 +7,8 @@
 //============================================================================
 
 #include <cstdlib>
-#include<iostream>
+#include <iostream>
+#include <string.h>
 
 #include "head/DBMS.h"
 #include "head/Block.h"
@@ -16,49 +17,24 @@
 
 using namespace std;
 
-/*
- * s
- */
 int main(int argc, char** argv) {
-    cout<<"Hello World"<<endl;
-    cout << "Hello DBMS" << endl;
+	int memorySize;
+	cout << "输入可用的主存空间： ";
+	cin >> memorySize;
 
-    DBMS * dbms = new DBMS;
-    dbms->initialDictionary();
+    DBMS * dbms = new DBMS(memorySize);
+    char dicName[MAX_DATABASE_NAME];
+    strcpy(dicName, "school");
+    dbms->initialDictionary(dicName);
     Dictionary::getDictionary()->printDictionary();
 
-//    Tuple * tup1 = new Tuple(Dictionary::getDictionary()->getaRelation(0));
-//    char cch[] = "abc";
-//    char vvch[] = "def";
-//    tup1->addChar(cch, 20);
-//    tup1->addVarchar(vvch, 3);
-//    tup1->addInteger(66);
-//    tup1->processData();
-//
-//    Tuple * tup2 = new Tuple(Dictionary::getDictionary()->getaRelation(0));
-//    char cch2[] = "abcd";
-//    char vvch2[] = "defg";
-//    tup2->addChar(cch2, 20);
-//    tup2->addVarchar(vvch2, 4);
-//    tup2->addInteger(88);
-//    tup2->processData();
-//
-//    unsigned int a = 0;
-//    Block * block = new Block(a, Dictionary::getDictionary()->getaRelation(0));
-//    block->addTuple(tup1->getResult(), tup1->getTupLength());
-//    block->addTuple(tup2->getResult(), tup2->getTupLength());
-//    cout << "----------------------------------------" << endl;
-//    block->printBlock();
-//
-//    delete block;
-//    delete tup2;
-//    delete tup1;
-
     dbms->test();
+    dbms->test2();
 
+    delete dbms;	//一定要先释放dbms后再释放Dictionary 不然后面将块写回文件的时候会找不到Dictionary而报错
     Dictionary::getDictionary()->releaseDictionary();
     Tools::getToolsInst()->releaseInst();
-    delete dbms;
+
 
     return 0;
 }

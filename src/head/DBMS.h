@@ -17,19 +17,28 @@
 #include "Dictionary.h"
 #include "../tools/head/lru.h"
 #include "Block.h"
+#include "../exception/head/FileNotFoundException.h"
+#include <string>
+
+#define MAX_DATABASE_NAME 		25		//数据库名称的长度
+#define MAX_ATTRIBUTE_NAME 		25		//关系表属性名称的长度
 
 class DBMS {
 public:
-	DBMS();
+	DBMS(int memorySize);
 	DBMS(const DBMS& orig);
 	virtual ~DBMS();
 
 public:
-	void initialDictionary();
+	void loadDatabases();			//将/data/databases.db加载到内存（所有数据库的名称）
+	void initialDictionary(const char * dicName);		//发布“use school”命令后调用，将对应的数据库字典调入内存
 	void test();
+	void test2();
+private:
+
 private:
 	LruCache<string, Block *> * lru;
-
+	vector<char *> databases;		//保存所有数据库的名称
 };
 
 #endif /* DBMS_H */

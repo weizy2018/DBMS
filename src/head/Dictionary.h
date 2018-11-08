@@ -14,7 +14,8 @@
 #ifndef DICTIONARY_H
 #define DICTIONARY_H
 
-#include<vector>
+#include <vector>
+#include <string>
 
 using namespace std;
 
@@ -44,15 +45,15 @@ public:
     void addRelation(Relation * rel);
     Relation * getRelation(int index);
     Relation * getRelation(char * relationname);
-	
+    void setCurDatabaseName(const char * curDBName);
+	const char * getCurDatabaseName() const;
 	void printDictionary(); //输出该字典到控制台上
 
 	void writeBack();		//对字典更新后写回文件
 
-protected:
-
 private:
     vector<Relation*> relations;
+    const char * curDatabaseName;
 
 };
 
@@ -65,6 +66,8 @@ public:
 	int getTotalProperty() const;
 	int getTypeName(int index) const;
 	int getTypeValue(int index) const;
+	void addAttribute(char * attr);
+
 	
 	void setRelationName(char * relName);
 	char * getRelationName() const;
@@ -82,7 +85,7 @@ private:
 	unsigned int totalBlock;
     int totalProperty;
     int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
-
+    vector<string> attribute;
 };
 
 #endif /* DICTIONARY_H */
