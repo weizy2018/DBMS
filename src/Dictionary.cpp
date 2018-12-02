@@ -83,7 +83,6 @@ void Dictionary::printDictionary(){
 void Dictionary::writeBack() {
 	FILE * dic;
 	if ((dic = fopen("data/dictionary2.dic", "w")) == NULL) {
-		printf ("can't opent file dicitonary22222.dic\n");
 		throw FileNotFoundException();
 	}
 	fprintf(dic, "%ld\n\n", relations.size());

@@ -118,6 +118,8 @@ void DBMS::test() {
 	string blockName(Dictionary::getDictionary()->getRelation(0)->getRelationName());
 	string id = to_string(totalBlock);
 	blockName.append(id);
+	totalBlock += 1;
+	Dictionary::getDictionary()->getRelation(0)->setTotalBlock(totalBlock);
 
 	for (int i = 0; i < 500; i++) {
 		char name1[20];
@@ -133,24 +135,25 @@ void DBMS::test() {
 		if (block->getFreespace() > 200) {
 			block->addTuple(tup->getResult(), tup->getTupLength());
 		} else {
+//			block->writeBack();
 			Block * b = lru->put(blockName, block);
 			if (b) {
 //				b->printBlock();
 				delete b;
 			}
-			totalBlock += 1;
-			Relation * r = Dictionary::getDictionary()->getRelation(0);
-			r->setTotalBlock(totalBlock);
+
 			totalBlock = Dictionary::getDictionary()->getRelation(0)->getTotalBlock();
 			block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(0));
 			id = to_string(totalBlock);
 			blockName = Dictionary::getDictionary()->getRelation(0)->getRelationName();
 			blockName.append(id);
-
 			block->addTuple(tup->getResult(), tup->getTupLength());
+			totalBlock += 1;
+			Dictionary::getDictionary()->getRelation(0)->setTotalBlock(totalBlock);
 		}
 		delete tup;
 	}
+//	block->writeBack();
 	Block * b = lru->put(blockName, block);	//------------差点出错------------------最后一块也要放入lru中
 	if (b) {
 		delete b;
@@ -170,6 +173,8 @@ void DBMS::test2() {
 	string blockName(Dictionary::getDictionary()->getRelation(1)->getRelationName());
 	string id = to_string(totalBlock);
 	blockName.append(id);
+	totalBlock += 1;
+	Dictionary::getDictionary()->getRelation(1)->setTotalBlock(totalBlock);
 	for (int i = 0; i < 500; i++) {
 		char str1[20];
 		char str2[20];
@@ -182,21 +187,24 @@ void DBMS::test2() {
 		if (block->getFreespace() > 200) {
 			block->addTuple(tup->getResult(), tup->getTupLength());
 		} else {
+//			block->writeBack();
 			Block * b = lru->put(blockName, block);
 			if (b) {
 //				b->printBlock();
 				delete b;
 			}
-			totalBlock += 1;
-			Dictionary::getDictionary()->getRelation(1)->setTotalBlock(totalBlock);
+
 			block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(1), 4);
 			id = to_string(totalBlock);
 			blockName = Dictionary::getDictionary()->getRelation(1)->getRelationName();
 			blockName.append(id);
 			block->addTuple(tup->getResult(), tup->getTupLength());
+			totalBlock += 1;
+			Dictionary::getDictionary()->getRelation(1)->setTotalBlock(totalBlock);
 		}
 		delete tup;
 	}
+//	block->writeBack();
 	Block * b = lru->put(blockName, block);		//这一部很关键 不要忘了 不然会少一块没有被写回文件
 	if (b) {
 		delete b;

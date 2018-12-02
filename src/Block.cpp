@@ -224,15 +224,15 @@ void Block::writeBack() {
 		string url(Dictionary::getDictionary()->getCurDatabaseName());
 		url = "data/" + url + "/";	//data/school/
 		url.append(relation->getRelationFileName());	// data/school/student.rel  data/school/teacher.rel
-//		cout << "Block::writeBack :" <<  url << endl;
 		FILE * f;
-		if ((f = fopen(url.c_str(), "wb")) == NULL) {	//测试阶段用"wb"模式写入  到时候要改成"ab"模式
+		if ((f = fopen(url.c_str(), "rb+")) == NULL) {	//测试阶段用"wb"模式写入  到时候要改成"ab"模式
 			throw FileNotFoundException("can't open file : " + url);
 		}
 		fseek(f, 1024*blockSize*blockId, SEEK_SET);
-		cout << "Block::writeBack ftell() = " << ftell(f) << endl;
+//		cout << "Block::writeBack ftell() = " << ftell(f) << endl;
 		fwrite(block, 1024*blockSize, 1, f);
 		fclose(f);
+		change = false;
 	}
 }
 

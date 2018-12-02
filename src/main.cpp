@@ -31,10 +31,10 @@ int main(int argc, char** argv) {
     dbms->test();
     dbms->test2();
 
+
     delete dbms;	//一定要先释放dbms后再释放Dictionary 不然后面将块写回文件的时候会找不到Dictionary而报错
     Dictionary::getDictionary()->releaseDictionary();
     Tools::getToolsInst()->releaseInst();
-
 
     return 0;
 }

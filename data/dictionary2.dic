@@ -1,6 +1,6 @@
 2
 
-6
+7
 3
 student
 student.rel
@@ -8,7 +8,7 @@ char 20
 varchar 20
 int -1
 
-6
+7
 2
 teacher
 teacher.rel
