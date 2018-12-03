@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#define SYMBOL_SIZE 10
+
 using namespace std;
 
 class SQL {
@@ -20,6 +22,7 @@ private:
 
 public:
 	static SQL * getsqlInst();
+	static void releaseInst();
 
 public:
 	virtual ~SQL();
@@ -31,7 +34,10 @@ public:
 
 private:
 	string sql;
-	vector<string> word;
+	vector<string> words;
+	char symbol[SYMBOL_SIZE];
+private:
+	bool isSymbol(char c);
 };
 
 #endif /* HEAD_SQL_H_ */
