@@ -14,16 +14,24 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <string>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "head/DBMS.h"
 #include "head/Global.h"
 #include "head/Tuple.h"
 #include "exception/head/FileNotFoundException.h"
+#include "exception/head/DatabaseCreateException.h"
 
 using namespace std;
-
+DBMS::DBMS() {
+	lru = new LruCache<string, Block *>(LRU_SIZE);
+	loadDatabases();
+}
 DBMS::DBMS(int memorySize) {
 	int lru_size = memorySize/4;
 	cout << "LruSize = " << lru_size << endl;
@@ -39,7 +47,7 @@ DBMS::~DBMS() {
 void DBMS::loadDatabases() {
 	FILE * dbs;
 	if ((dbs = fopen("data/databases.db", "r")) == NULL) {
-		throw FileNotFoundException("FileNotFoundException: file data/databases.db not found");
+		throw FileNotFoundException("data/databases.db");
 	}
 	char * p = (char*)malloc(MAX_DATABASE_NAME);
 	while (fscanf(dbs, "%s", p) != EOF) {
@@ -47,6 +55,7 @@ void DBMS::loadDatabases() {
 		p = (char*)malloc(MAX_DATABASE_NAME);
 	}
 	free(p);	//多申请了一个空间  删除以免内存泄露
+	fclose(dbs);
 }
 
 void DBMS::initialDictionary(const char * dicName) {
@@ -108,6 +117,73 @@ void DBMS::initialDictionary(const char * dicName) {
     
     printf("initial success!!!\n");
 }
+
+/*
+ * 创建数据库
+ */
+void DBMS::createDatabase(char * dbName) {
+	//判断该数据库名称是否已经存在
+	if (isExist(dbName)) {
+		string str(dbName);
+		string message = str + " already exist";
+		throw DatabaseCreateException(message);
+	}
+	//创建该数据库的文件夹
+	string folderName(dbName);
+	folderName = "data/" + folderName;
+	//先判断文件夹是否存在，存在返回0，不存在返回-1
+	if (access(folderName.c_str(), F_OK) == -1) {
+		//创建数据库对应的文件夹，成功返回0，不成功返回-1
+		if (mkdir(folderName.c_str(), S_IRWXU) == -1) {
+			throw DatabaseCreateException(dbName);
+		}
+	}
+
+	//创建数据库字典文件
+	FILE * dicFile;
+	string dicFileName = folderName + "/" + dbName + ".desc";
+	if ((dicFile = fopen(dicFileName.c_str(), "w")) == NULL) {
+		throw FileNotFoundException(dicFileName);
+	}
+	fprintf(dicFile, "%d\n", 0);		//初始化数据库关系表个数为0
+	fprintf(dicFile, "%d\n", 0);		//初始化索引个数为0
+	fclose(dicFile);
+
+	databases.push_back(dbName);
+	//写入数据库文件
+	FILE * dbs;
+	if ((dbs = fopen("data/databases.db", "a")) == NULL) {
+		throw FileNotFoundException("data/databases.db");
+	}
+	fprintf(dbs, "%s\n", dbName);
+	fclose(dbs);
+}
+/*
+ * 更新数据库文件    好像没有必要
+ */
+void DBMS::writeBack() {
+	FILE * dbs;
+	if ((dbs = fopen("data/databases.db", "w")) == NULL) {
+		throw FileNotFoundException("data/databases.db");
+	}
+	for (auto it = databases.begin(); it != databases.end(); it++) {
+		fprintf(dbs, "%s\n", *it);
+	}
+	fclose(dbs);
+}
+/*
+ * 判断数据库名称是否存在
+ */
+bool DBMS::isExist(char * dbName) {
+	for (auto it = databases.begin(); it != databases.end(); it++) {
+		if (strcmp(dbName, *it) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
 void DBMS::test() {
 	FILE * testFile;
 	if ((testFile = fopen("testFile.ts", "r")) == NULL) {

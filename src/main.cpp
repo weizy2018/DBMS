@@ -46,7 +46,11 @@ int main(int argc, char** argv) {
 }
 void test() {
 	SQL * sql = SQL::getsqlInst();
-	sql->inputSql();
-	sql->parse();
+	while (!sql->isFinish()) {
+		sql->inputSql();
+		sql->parse();
+		sql->execute();
+	}
+
 	SQL::releaseInst();
 }

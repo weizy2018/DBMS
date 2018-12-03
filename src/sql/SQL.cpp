@@ -17,6 +17,8 @@ SQL::SQL() {
 	for (int i = 0; i < SYMBOL_SIZE; i++) {
 		symbol[i] = sym[i];
 	}
+	dbms = new DBMS();
+	finish = false;
 }
 
 SQL::~SQL() {
@@ -34,7 +36,7 @@ void SQL::releaseInst() {
 }
 
 void SQL::inputSql() {
-	cout << "SQL::inoutSql()" << endl;
+//	cout << "SQL::inputSql()" << endl;
 	sql = "";
 	cout << "sql> ";
 	getline(cin, sql);
@@ -58,17 +60,15 @@ void SQL::inputSql() {
 	int index = sql.find(';');
 	sql.erase(index + 1);			//清空‘；’后面的空格或者其他字符也一起清了
 
-	cout << "input finish :" << sql << endl;
+//	cout << "input finish :" << sql << endl;
 }
 
 void SQL::parse() {
 	for (unsigned int i = 0; i < sql.size(); i++) {
-//		cout << "i = " << i << "sql.at(i) = " << sql.at(i) << endl;
 		string word = "";
 		while (sql.at(i) == ' ') {
 			i++;
 		}
-//		cout << "i = " << i << endl;
 		if (isSymbol(sql.at(i))) {
 			word += sql.at(i);
 			i++;
@@ -88,9 +88,39 @@ void SQL::parse() {
 		i--;
 		words.push_back(word);
 	}
-	cout << "parse finish !" << endl;
-	for (unsigned int i = 0; i < words.size(); i++) {
-		cout << words[i] << endl;
+//	cout << "parse finish !" << endl;
+//	for (unsigned int i = 0; i < words.size(); i++) {
+//		cout << words[i] << endl;
+//	}
+}
+void SQL::execute() {
+	if (words[0] == CREATE) {
+		cout << "create" << endl;
+	} else if (words[0] == SELECT) {
+		cout << "select" << endl;
+
+	} else if (words[0] == INSERT) {
+		cout << "insert" << endl;
+
+	} else if (words[0] == DELETE) {
+		cout << "delete" << endl;
+
+	} else if (words[0] == USE) {
+		cout << "use" << endl;
+
+	} else if (words[0] == SHOW) {
+		cout << "show" << endl;
+
+	} else if (words[0] == DESC) {
+		cout << "desc" << endl;
+
+	} else if (words[0] == EXIT) {
+		cout << "exit" << endl;
+		finish = true;
+	} else if (words[0] == DROP) {
+		cout << "drop" << endl;
+	} else {
+
 	}
 }
 bool SQL::isSymbol(char c) {
@@ -101,6 +131,9 @@ bool SQL::isSymbol(char c) {
 		}
 	}
 	return false;
+}
+bool SQL::isFinish() {
+	return finish;
 }
 
 

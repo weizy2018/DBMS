@@ -10,8 +10,19 @@
 
 #include <string>
 #include <vector>
+#include "../../head/DBMS.h"
 
 #define SYMBOL_SIZE 10
+
+#define CREATE 		"create"
+#define SELECT 		"select"
+#define INSERT		"insert"
+#define DELETE 		"delete"
+#define DROP		"drop"
+#define SHOW		"show"
+#define DESC		"desc"
+#define EXIT		"exit"
+#define USE			"use"
 
 using namespace std;
 
@@ -30,14 +41,20 @@ public:
 public:
 	void inputSql();
 	void parse();
+	void execute();
+	bool isFinish();
 
 
 private:
 	string sql;
 	vector<string> words;
 	char symbol[SYMBOL_SIZE];
+
+	DBMS * dbms;
+
 private:
 	bool isSymbol(char c);
+	bool finish;
 };
 
 #endif /* HEAD_SQL_H_ */
