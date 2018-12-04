@@ -51,7 +51,6 @@ private:
 	vector<string> words;
 	char symbol[SYMBOL_SIZE];
 
-	DBMS * dbms;
 
 private:
 	bool isSymbol(char c);

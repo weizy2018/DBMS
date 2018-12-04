@@ -29,6 +29,9 @@
 #include "tools/head/BPlusTree.h"
 
 using namespace std;
+
+DBMS * DBMS::dbms = nullptr;
+
 DBMS::DBMS() {
 	lru = new LruCache<string, Block *>(LRU_SIZE);
 	loadDatabases();
@@ -38,6 +41,12 @@ DBMS::DBMS(int memorySize) {
 	cout << "LruSize = " << lru_size << endl;
 	lru = new LruCache<string, Block *>(lru_size);
 	loadDatabases();
+}
+DBMS * DBMS::getDBMSInst() {
+	if (dbms == nullptr) {
+		dbms = new DBMS();
+	}
+	return dbms;
 }
 
 
@@ -125,10 +134,12 @@ void DBMS::initialDictionary(const char * dicName) {
     	string key(tableName);
     	key.append("$");
     	key.append(colName);
+
     	Dictionary::getDictionary()->addIndex(key, indexName);
 
     	Relation * rel = Dictionary::getDictionary()->getRelation(tableName);
     	unsigned int attrIndex = rel->getAttributeIndex(colName);
+
     	//BPlusTree(const char * indexFileName, int keyLen, int valueLen, bool create);
     	string indexFileName(tableName);
     	indexFileName.append("_");
@@ -140,22 +151,30 @@ void DBMS::initialDictionary(const char * dicName) {
 
     	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
     		BPlusTree<int, unsigned long int>* tree;
-    		tree = new BPlusTree<int, unsigned long int>(indexFileName.c_str, indexKeyLen, valueLen, false);
+    		tree = new BPlusTree<int, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
     		Dictionary::getDictionary()->addIntIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::FLOAT) {
+    		BPlusTree<float, unsigned long int> * tree;
+    		tree = new BPlusTree<float, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    		Dictionary::getDictionary()->addFloatIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::DOUBLE) {
+    		BPlusTree<double, unsigned long int> * tree;
+    		tree = new BPlusTree<double, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    		Dictionary::getDictionary()->addDoubleIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::CHAR) {
+    		BPlusTree<string, unsigned long int> * tree;
+    		tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    		Dictionary::getDictionary()->addStringIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::VARCHAR) {
-
+    		BPlusTree<string, unsigned long int> * tree;
+    		tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    		Dictionary::getDictionary()->addStringIndex(key, tree);
     	}
-
-
     }
-
     fclose(dicFile);
     
     printf("initial success!!!\n");

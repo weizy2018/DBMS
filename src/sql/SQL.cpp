@@ -19,7 +19,6 @@ SQL::SQL() {
 	for (int i = 0; i < SYMBOL_SIZE; i++) {
 		symbol[i] = sym[i];
 	}
-	dbms = new DBMS();
 	finish = false;
 }
 

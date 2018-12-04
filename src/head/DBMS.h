@@ -25,15 +25,24 @@
 #define LRU_SIZE				20		//定义lru能容纳的块数
 
 class DBMS {
-public:
+private:
 	DBMS();
 	DBMS(int memorySize);
 	DBMS(const DBMS& orig);
+	DBMS & operator = (const DBMS &);
+private:
+	static DBMS * dbms;
+
+public:
+	static DBMS * getDBMSInst();
+	static DBMS * releaseDBMSInst();
+public:
 	virtual ~DBMS();
 
 public:
 	void loadDatabases();			//将/data/databases.db加载到内存（所有数据库的名称）
 	void initialDictionary(const char * dicName);		//发布“use school”命令后调用，将对应的数据库字典调入内存
+public:
 	void test();
 	void test2();
 public:
