@@ -26,6 +26,7 @@
 #include "head/Tuple.h"
 #include "exception/head/FileNotFoundException.h"
 #include "exception/head/DatabaseCreateException.h"
+#include "tools/head/BPlusTree.h"
 
 using namespace std;
 DBMS::DBMS() {
@@ -71,7 +72,9 @@ void DBMS::initialDictionary(const char * dicName) {
         throw FileNotFoundException("FileNotFoundException: can't not open " + dicDescName);
     }
     int totalRelationship;
+    int totalIndex;
     fscanf(dicFile, "%d", &totalRelationship);
+    fscanf(dicFile, "%d", &totalIndex);
     
     for (int i = 0; i < totalRelationship; i++) {
     	unsigned int totalBlock;
@@ -111,6 +114,46 @@ void DBMS::initialDictionary(const char * dicName) {
             rel->addType(typeToInt, value, j);
         }
         Dictionary::getDictionary()->addRelation(rel);
+    }
+
+    char tableName[Global::MAX_RELATION_NAME];
+    char colName[Global::TYPE_LENGTH];
+    char indexName[Global::MAX_IDNEX_NAME];
+    for (int i = 0; i < totalIndex; i++) {
+    	//表名  列名  索引名
+    	fscanf(dicFile, "%s%s%s", tableName, colName, indexName);
+    	string key(tableName);
+    	key.append("$");
+    	key.append(colName);
+    	Dictionary::getDictionary()->addIndex(key, indexName);
+
+    	Relation * rel = Dictionary::getDictionary()->getRelation(tableName);
+    	unsigned int attrIndex = rel->getAttributeIndex(colName);
+    	//BPlusTree(const char * indexFileName, int keyLen, int valueLen, bool create);
+    	string indexFileName(tableName);
+    	indexFileName.append("_");
+    	indexFileName.append(colName);
+    	indexFileName.append(".ind");
+
+    	int indexKeyLen = rel->getTypeValue(attrIndex);
+    	int valueLen    = sizeof(unsigned long int);
+
+    	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
+    		BPlusTree<int, unsigned long int>* tree;
+    		tree = new BPlusTree<int, unsigned long int>(indexFileName.c_str, indexKeyLen, valueLen, false);
+    		Dictionary::getDictionary()->addIntIndex(key, tree);
+
+    	} else if (rel->getTypeName(attrIndex) == Global::FLOAT) {
+
+    	} else if (rel->getTypeName(attrIndex) == Global::DOUBLE) {
+
+    	} else if (rel->getTypeName(attrIndex) == Global::CHAR) {
+
+    	} else if (rel->getTypeName(attrIndex) == Global::VARCHAR) {
+
+    	}
+
+
     }
 
     fclose(dicFile);

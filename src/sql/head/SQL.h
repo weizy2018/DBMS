@@ -23,6 +23,7 @@
 #define DESC		"desc"
 #define EXIT		"exit"
 #define USE			"use"
+#define STATUS		"status"
 
 using namespace std;
 

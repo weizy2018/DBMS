@@ -45,6 +45,25 @@ Dictionary::~Dictionary(){
     	delete rel;
     	relations.pop_back();
     }
+    for (auto it = stringIndex.begin(); it != stringIndex.end(); it++) {
+    	delete(it->second);
+    }
+    stringIndex.clear();
+
+    for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
+    	delete(it->second);
+    }
+    intIndex.clear();
+
+    for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
+    	delete(it->second);
+    }
+    floatIndex.clear();
+
+    for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
+    	delete(it->second);
+    }
+    doubleIndex.clear();
 }
 void Dictionary::setCurDatabaseName(const char * curDBName) {
 	curDatabaseName = curDBName;
@@ -85,7 +104,9 @@ void Dictionary::writeBack() {
 	if ((dic = fopen("data/dictionary2.dic", "w")) == NULL) {
 		throw FileNotFoundException();
 	}
-	fprintf(dic, "%ld\n\n", relations.size());
+	fprintf(dic, "%ld\n", relations.size());
+	fprintf(dic, "%ld\n\n", indexs.size());
+
 	for (auto it = relations.begin(); it != relations.end(); it++) {
 		fprintf(dic, "%u\n", (*it)->getTotalBlock());
 		fprintf(dic, "%d\n", (*it)->getTotalProperty());
@@ -115,9 +136,37 @@ void Dictionary::writeBack() {
 		}
 		fprintf(dic, "\n");
 	}
+	fprintf(dic, "\n");
+
+	for (auto it = indexs.begin(); it != indexs.end(); it++) {
+		string key = it->first;
+		string value = it->second;
+		unsigned int index = key.find('$');
+		string tableName = key.substr(0, index);
+		string colName   = key.substr(index + 1);
+		fprintf(dic, "%s %s %s\n", tableName.c_str(), colName.c_str(), value.c_str());
+	}
+
 	fclose(dic);
 }
 
+void Dictionary::addStringIndex(string key, BPlusTree<string, unsigned long int> * value) {
+	stringIndex.insert(pair<string, BPlusTree<string, unsigned long int> *>(key, value));
+}
+void Dictionary::addIntIndex(string key, BPlusTree<int, unsigned long int> * value) {
+	intIndex.insert(pair<string, BPlusTree<int, unsigned long int> *>(key, value));
+}
+void Dictionary::addFloatIndex(string key, BPlusTree<float, unsigned long int> * value) {
+	floatIndex.insert(pair<string, BPlusTree<float, unsigned long int> *>(key, value));
+}
+void Dictionary::addDoubleIndex(string key, BPlusTree<double, unsigned long int> * value) {
+	doubleIndex.insert(pair<string, BPlusTree<double, unsigned long int> *>(key, value));
+}
+void Dictionary::addIndex(string key, string indexName) {
+	indexs.insert(pair<string, string>(key, indexName));
+}
+
+//==============================================
 
 Relation::Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName){
     this->totalBlock = totalBlock;
@@ -177,6 +226,15 @@ void Relation::setTotalBlock(unsigned int totalBlock) {
 void Relation::addAttribute(char * attrName) {
 	string str(attrName);
 	attribute.push_back(str);
+}
+unsigned int Relation::getAttributeIndex(char * attr) {
+	string temp(attr);
+	for (unsigned int i = 0; i < attribute.size(); i++) {
+		if (temp == attribute.at(i)){
+			return i;
+		}
+	}
+	return -1;
 }
 
 

@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string.h>
 
+#include "../exception/head/SqlSyntaxException.h"
+
 SQL * SQL::sqlInst = nullptr;
 
 SQL::SQL() {
@@ -38,6 +40,7 @@ void SQL::releaseInst() {
 void SQL::inputSql() {
 //	cout << "SQL::inputSql()" << endl;
 	sql = "";
+	words.clear();
 	cout << "sql> ";
 	getline(cin, sql);
 	string str = sql;
@@ -119,8 +122,10 @@ void SQL::execute() {
 		finish = true;
 	} else if (words[0] == DROP) {
 		cout << "drop" << endl;
+	} else if (words[0] == STATUS) {
+		cout << "status" << endl;
 	} else {
-
+		throw SqlSyntaxException();
 	}
 }
 bool SQL::isSymbol(char c) {

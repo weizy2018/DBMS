@@ -15,7 +15,9 @@
 #define DICTIONARY_H
 
 #include <vector>
+#include <map>
 #include <string>
+#include "../tools/head/BPlusTree.h"
 
 using namespace std;
 
@@ -50,11 +52,24 @@ public:
 	void printDictionary(); //输出该字典到控制台上
 
 	void writeBack();		//对字典更新后写回文件
-
+public:
+	void addStringIndex(string key, BPlusTree<string, unsigned long int> * value);
+	void addIntIndex(string key, BPlusTree<int, unsigned long int> * value);
+	void addFloatIndex(string key, BPlusTree<float, unsigned long int> * value);
+	void addDoubleIndex(string key, BPlusTree<double, unsigned long int> * value);
+	void addIndex(string key, string indexName);
 private:
     vector<Relation*> relations;
     const char * curDatabaseName;
 
+    //索引  string = tableName + "$" + colName
+    map<string, BPlusTree<string, unsigned long int> *> stringIndex;
+    map<string, BPlusTree<int, unsigned long int> *> intIndex;
+    map<string, BPlusTree<float, unsigned long int> *> floatIndex;
+    map<string, BPlusTree<double, unsigned long int> *> doubleIndex;
+
+    //index <tableName + "$" + colName, indexName>
+    map<string, string> indexs;
 };
 
 class Relation{
@@ -67,6 +82,7 @@ public:
 	int getTypeName(int index) const;
 	int getTypeValue(int index) const;
 	void addAttribute(char * attr);
+	unsigned int getAttributeIndex(char * attr);
 
 	
 	void setRelationName(char * relName);
@@ -86,6 +102,8 @@ private:
     int totalProperty;
     int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
     vector<string> attribute;
+    //<colName, fileName>
+//    map<string, string> indexFileName;
 };
 
 #endif /* DICTIONARY_H */
