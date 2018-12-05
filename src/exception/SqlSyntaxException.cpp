@@ -6,6 +6,8 @@
  */
 
 #include "head/SqlSyntaxException.h"
+#include <iostream>
+using namespace std;
 
 SqlSyntaxException::SqlSyntaxException() {
 	// TODO Auto-generated constructor stub
@@ -22,5 +24,6 @@ SqlSyntaxException::~SqlSyntaxException() {
 const char * SqlSyntaxException::what() const throw() {
 	string str = "SqlException: ";
 	str += message;
+	cout << str << endl;
 	return str.c_str();
 }

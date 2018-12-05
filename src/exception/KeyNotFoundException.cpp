@@ -6,6 +6,8 @@
  */
 
 #include "head/KeyNotFoundException.h"
+#include <iostream>
+using namespace std;
 
 KeyNotFoundException::KeyNotFoundException() {
 	// TODO Auto-generated constructor stub
@@ -20,6 +22,8 @@ KeyNotFoundException::~KeyNotFoundException() {
 }
 const char * KeyNotFoundException::what() const throw() {
 	string error = "KeyNotFoundException: " + message + " not found";
+	cout << error << endl;
+
 	return error.c_str();
 }
 

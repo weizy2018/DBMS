@@ -47,6 +47,7 @@ public:
 	void test2();
 public:
 	void createDatabase(char * dbName);
+	void createTable(char * tableName, vector<string> attr, vector<int> len);
 	void writeBack();				//将数据库名称写回文件databases
 private:
 	bool isExist(char * dbName);					//判断数据库是否存在

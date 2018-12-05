@@ -6,6 +6,8 @@
  */
 
 #include "head/DatabaseCreateException.h"
+#include <iostream>
+using namespace std;
 
 DatabaseCreateException::DatabaseCreateException() {
 	// TODO Auto-generated constructor stub
@@ -23,5 +25,7 @@ DatabaseCreateException::~DatabaseCreateException() {
 const char * DatabaseCreateException::what() const throw() {
 	string str = "DatabaseCreateException: ";
 	str += message;
+	cout << str << endl;
+
 	return str.c_str();
 }

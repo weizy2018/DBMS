@@ -6,6 +6,8 @@
  */
 
 #include "head/FileNotFoundException.h"
+#include <iostream>
+using namespace std;
 
 FileNotFoundException::FileNotFoundException() {
 	fileName = "";
@@ -21,6 +23,8 @@ FileNotFoundException::~FileNotFoundException() {
 
 const char * FileNotFoundException::what() const throw() {
 	string error = "File" + fileName + " not found";
+	cout << "FileNotFoundException: " << error << endl;
+
 	return error.c_str();
 }
 

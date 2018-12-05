@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../exception/head/SqlSyntaxException.h"
+#include "head/CreateSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -98,6 +99,9 @@ void SQL::parse() {
 void SQL::execute() {
 	if (words[0] == CREATE) {
 		cout << "create" << endl;
+		CreateSql * createStatu = new CreateSql(words);
+		createStatu->execute();
+		delete createStatu;
 	} else if (words[0] == SELECT) {
 		cout << "select" << endl;
 
