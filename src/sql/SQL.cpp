@@ -8,9 +8,11 @@
 #include "head/SQL.h"
 #include <iostream>
 #include <string.h>
+#include <stack>
 
 #include "../exception/head/SqlSyntaxException.h"
 #include "head/CreateSql.h"
+#include "head/ExecuteStatus.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -67,6 +69,9 @@ void SQL::inputSql() {
 }
 
 void SQL::parse() {
+	if (!check()) {
+		throw SqlSyntaxException("sql syntax error");
+	}
 	for (unsigned int i = 0; i < sql.size(); i++) {
 		string word = "";
 		while (sql.at(i) == ' ') {
@@ -91,17 +96,17 @@ void SQL::parse() {
 		i--;
 		words.push_back(word);
 	}
-//	cout << "parse finish !" << endl;
-//	for (unsigned int i = 0; i < words.size(); i++) {
-//		cout << words[i] << endl;
-//	}
+	cout << "parse finish !" << endl;
+	for (unsigned int i = 0; i < words.size(); i++) {
+		cout << words[i] << endl;
+	}
 }
 void SQL::execute() {
+	ExecuteStatus * executeStatus = nullptr;
 	if (words[0] == CREATE) {
 		cout << "create" << endl;
-		CreateSql * createStatu = new CreateSql(words);
-		createStatu->execute();
-		delete createStatu;
+		executeStatus = new CreateSql(words);
+
 	} else if (words[0] == SELECT) {
 		cout << "select" << endl;
 
@@ -128,7 +133,18 @@ void SQL::execute() {
 	} else if (words[0] == STATUS) {
 		cout << "status" << endl;
 	} else {
-		throw SqlSyntaxException();
+		throw SqlSyntaxException("the word \'" + words[0] + "\' is undefined");
+	}
+	if (executeStatus) {
+		try {
+			executeStatus->execute();
+		} catch (SqlSyntaxException & e) {
+			e.what();
+		} catch (invalid_argument & e) {
+			cout << e.what() << endl;
+		}
+
+		delete executeStatus;
 	}
 }
 bool SQL::isSymbol(char c) {
@@ -139,6 +155,26 @@ bool SQL::isSymbol(char c) {
 		}
 	}
 	return false;
+}
+bool SQL::check() {
+	stack<char> s;
+	for (unsigned int i = 0; i < sql.size(); i++) {
+		if (sql.at(i) == '(') {
+			s.push(sql.at(i));
+		} else if (sql.at(i) == ')') {
+			if (s.empty() || s.top() != '(') {
+				return false;
+			} else {
+				s.pop();
+			}
+		}
+	}
+	if (!s.empty()) {
+		return false;
+	} else {
+		return true;
+	}
+
 }
 bool SQL::isFinish() {
 	return finish;

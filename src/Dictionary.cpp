@@ -72,6 +72,13 @@ const char * Dictionary::getCurDatabaseName() const {
 	return curDatabaseName;
 }
 
+void Dictionary::setBlockSize(int size) {
+	this->BlockSize = size;
+}
+int Dictionary::getBlockSize() {
+	return BlockSize;
+}
+
 
 void Dictionary::addRelation(Relation * rel){
     relations.push_back(rel);

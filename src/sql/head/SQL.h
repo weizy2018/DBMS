@@ -57,7 +57,8 @@ private:
 
 
 private:
-	bool isSymbol(char c);
+	bool isSymbol(char c);		//检查是否是标点符号等
+	bool check();				//检查括号匹配
 	bool finish;
 };
 

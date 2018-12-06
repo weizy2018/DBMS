@@ -15,6 +15,7 @@
 #include "head/Tuple.h"
 #include "tools/head/tools.h"
 #include "sql/head/SQL.h"
+#include "exception/head/SqlSyntaxException.h"
 
 using namespace std;
 
@@ -48,8 +49,14 @@ void test() {
 	SQL * sql = SQL::getsqlInst();
 	while (!sql->isFinish()) {
 		sql->inputSql();
-		sql->parse();
-		sql->execute();
+		try {
+			sql->parse();
+			sql->execute();
+		} catch (SqlSyntaxException & e) {
+			e.what();
+		} catch (exception & e) {
+			e.what();
+		}
 	}
 
 	SQL::releaseInst();

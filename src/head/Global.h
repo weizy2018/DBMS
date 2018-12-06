@@ -25,11 +25,13 @@ public:
     const static int CHAR    = 4;
     const static int VARCHAR = 5;
 	
+    const static int MAX_DATABASE_NAME		= 25;
 	const static int MAX_RELATION_NAME 		= 20;
 	const static int MAX_IDNEX_NAME 		= 20;
 	const static int MAX_RELATION_FILE_NAME = 25;
+	const static int MAX_ATTRIBUTE_NAME		= 25;		//属性的名称
 	
-	const static int TYPE_LENGTH = 10;	 //属性的名称长度
+	const static int TYPE_LENGTH 			= 10;	 	//属性的类型名称长度
 
 protected:
 

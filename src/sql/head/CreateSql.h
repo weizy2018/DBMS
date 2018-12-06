@@ -25,6 +25,7 @@ public:
 	void create();
 	void execute();
 private:
+	int inputBlockSize();
 
 };
 

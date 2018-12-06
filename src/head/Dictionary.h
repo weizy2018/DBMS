@@ -49,6 +49,9 @@ public:
     Relation * getRelation(char * relationname);
     void setCurDatabaseName(const char * curDBName);
 	const char * getCurDatabaseName() const;
+	void setBlockSize(int size);
+	int getBlockSize();
+public:
 	void printDictionary(); //输出该字典到控制台上
 
 	void writeBack();		//对字典更新后写回文件
@@ -70,6 +73,8 @@ private:
 
     //index <tableName + "$" + colName, indexName>
     map<string, string> indexs;
+private:
+    int BlockSize;			//块的大小
 };
 
 class Relation{
@@ -102,6 +107,7 @@ private:
     int totalProperty;
     int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
     vector<string> attribute;
+
     //<colName, fileName>
 //    map<string, string> indexFileName;
 };

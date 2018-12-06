@@ -26,6 +26,7 @@
 #include "head/Tuple.h"
 #include "exception/head/FileNotFoundException.h"
 #include "exception/head/DatabaseCreateException.h"
+#include "exception/head/DatabaseException.h"
 #include "tools/head/BPlusTree.h"
 
 using namespace std;
@@ -33,10 +34,12 @@ using namespace std;
 DBMS * DBMS::dbms = nullptr;
 
 DBMS::DBMS() {
+	currentDatabase = nullptr;
 	lru = new LruCache<string, Block *>(LRU_SIZE);
 	loadDatabases();
 }
 DBMS::DBMS(int memorySize) {
+	currentDatabase = nullptr;
 	int lru_size = memorySize/4;
 	cout << "LruSize = " << lru_size << endl;
 	lru = new LruCache<string, Block *>(lru_size);
@@ -59,10 +62,10 @@ void DBMS::loadDatabases() {
 	if ((dbs = fopen("data/databases.db", "r")) == NULL) {
 		throw FileNotFoundException("data/databases.db");
 	}
-	char * p = (char*)malloc(MAX_DATABASE_NAME);
+	char * p = (char*)malloc(Global::MAX_DATABASE_NAME);
 	while (fscanf(dbs, "%s", p) != EOF) {
 		databases.push_back(p);
-		p = (char*)malloc(MAX_DATABASE_NAME);
+		p = (char*)malloc(Global::MAX_DATABASE_NAME);
 	}
 	free(p);	//多申请了一个空间  删除以免内存泄露
 	fclose(dbs);
@@ -72,7 +75,7 @@ void DBMS::initialDictionary(const char * dicName) {
 	cout << "DBMS::inititalDictionary()" << endl;
 	Dictionary::getDictionary()->setCurDatabaseName(dicName);
     FILE * dicFile;
-    //data/school/school.desc
+    //eg: data/school/school.desc
     string dicDescName(dicName);	//school
     dicDescName = "data/" + dicDescName + "/" + dicDescName + ".desc";
     cout << "dicDescName : " << dicDescName << endl;
@@ -98,7 +101,7 @@ void DBMS::initialDictionary(const char * dicName) {
 
         Relation * rel = new Relation(totalBlock, totalProperty, relName, relFileName);
         for (int j = 0; j < totalProperty; j++) {
-        	char  attrName[MAX_ATTRIBUTE_NAME];
+        	char  attrName[Global::MAX_ATTRIBUTE_NAME];
         	fscanf(dicFile, "%s", attrName);
         	rel->addAttribute(attrName);
         }
@@ -135,6 +138,7 @@ void DBMS::initialDictionary(const char * dicName) {
     	key.append("$");
     	key.append(colName);
 
+    	//向数据库字典中添加索引名称
     	Dictionary::getDictionary()->addIndex(key, indexName);
 
     	Relation * rel = Dictionary::getDictionary()->getRelation(tableName);
@@ -149,6 +153,7 @@ void DBMS::initialDictionary(const char * dicName) {
     	int indexKeyLen = rel->getTypeValue(attrIndex);
     	int valueLen    = sizeof(unsigned long int);
 
+    	//初始化相应的索引
     	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
     		BPlusTree<int, unsigned long int>* tree;
     		tree = new BPlusTree<int, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
@@ -183,7 +188,7 @@ void DBMS::initialDictionary(const char * dicName) {
 /*
  * 创建数据库
  */
-void DBMS::createDatabase(char * dbName) {
+void DBMS::createDatabase(char * dbName, int blockSize) {
 	//判断该数据库名称是否已经存在
 	if (isExist(dbName)) {
 		string str(dbName);
@@ -207,8 +212,9 @@ void DBMS::createDatabase(char * dbName) {
 	if ((dicFile = fopen(dicFileName.c_str(), "w")) == NULL) {
 		throw FileNotFoundException(dicFileName);
 	}
-	fprintf(dicFile, "%d\n", 0);		//初始化数据库关系表个数为0
-	fprintf(dicFile, "%d\n", 0);		//初始化索引个数为0
+	fprintf(dicFile, "%d\n", 0);			//初始化数据库关系表个数为0
+	fprintf(dicFile, "%d\n", 0);			//初始化索引个数为0
+	fprintf(dicFile, "%d\n", blockSize);	//块的大小
 	fclose(dicFile);
 
 	databases.push_back(dbName);
@@ -219,6 +225,16 @@ void DBMS::createDatabase(char * dbName) {
 	}
 	fprintf(dbs, "%s\n", dbName);
 	fclose(dbs);
+}
+/*
+ * 创建关系表
+ * map<attrName, pair<typeName, typeValue>>
+ */
+void DBMS::createTable(char * relName, map<string, pair<string, int>>) {
+	if (currentDatabase == nullptr) {
+		throw DatabaseException("no database selected");
+	}
+
 }
 /*
  * 更新数据库文件    好像没有必要
