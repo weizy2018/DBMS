@@ -31,7 +31,8 @@ Dictionary * Dictionary::getDictionary(){
 }
 
 Dictionary::Dictionary(){
-	curDatabaseName = nullptr;
+	curDatabaseName = "";
+	blockSize = 4;
 }
 
 void Dictionary::releaseDictionary(){
@@ -73,10 +74,10 @@ const char * Dictionary::getCurDatabaseName() const {
 }
 
 void Dictionary::setBlockSize(int size) {
-	this->BlockSize = size;
+	this->blockSize = size;
 }
 int Dictionary::getBlockSize() {
-	return BlockSize;
+	return blockSize;
 }
 
 
@@ -107,12 +108,19 @@ void Dictionary::printDictionary(){
     
 }
 void Dictionary::writeBack() {
+	string dicPath("data/");
+	dicPath.append(curDatabaseName);
+	dicPath.append("/");
+	dicPath.append(curDatabaseName);
+	dicPath.append(".desc");
+
 	FILE * dic;
-	if ((dic = fopen("data/dictionary2.dic", "w")) == NULL) {
+	if ((dic = fopen(dicPath.c_str(), "w")) == NULL) {
 		throw FileNotFoundException();
 	}
 	fprintf(dic, "%ld\n", relations.size());
-	fprintf(dic, "%ld\n\n", indexs.size());
+	fprintf(dic, "%ld\n", indexs.size());
+	fprintf(dic, "%d\n\n", blockSize);
 
 	for (auto it = relations.begin(); it != relations.end(); it++) {
 		fprintf(dic, "%u\n", (*it)->getTotalBlock());
@@ -120,6 +128,12 @@ void Dictionary::writeBack() {
 		fprintf(dic, "%s\n", (*it)->getRelationName());
 		fprintf(dic, "%s\n", (*it)->getRelationFileName());
 		int total = (*it)->getTotalProperty();
+		//属性名称
+		for (int i = 0; i < total; i++) {
+			fprintf(dic, "%s ", (*it)->getAttribute(i).c_str());
+		}
+		fprintf(dic, "\n");
+		//属性类型以及取值范围
 		for (int i = 0; i < total; i++) {
 			char attrName[10];
 			switch((*it)->getTypeName(i)) {
@@ -185,18 +199,17 @@ Relation::~Relation(){
 	free(relationName);
 	free(relationFileName);
 }
-void Relation::addType(int type, int value, int index){
-    this->type[index][0] = type;
-    this->type[index][1] = value;
+void Relation::addType(int typeName, int value){
+	type.push_back(pair<int, int>(typeName, value));
 }
 int Relation::getTotalProperty() const{
     return totalProperty;
 }
 int Relation::getTypeName(int index) const{
-    return type[index][0];
+    return type.at(index).first;
 }
 int Relation::getTypeValue(int index) const{
-    return type[index][1];
+	return type.at(index).second;
 }
 void Relation::printRelation(){
 	printf("relation name : %s\n", relationName);
@@ -208,7 +221,7 @@ void Relation::printRelation(){
 
 	cout << endl;
     for (int i = 0; i < totalProperty; i++){
-        printf("%d\t%d\n", type[i][0], type[i][1]);
+        printf("%d\t%d\n", type.at(i).first, type.at(i).second);
     }
 }
 void Relation::setRelationName(char * relName){
@@ -230,9 +243,12 @@ unsigned int Relation::getTotalBlock() {
 void Relation::setTotalBlock(unsigned int totalBlock) {
 	this->totalBlock = totalBlock;
 }
-void Relation::addAttribute(char * attrName) {
+void Relation::addAttribute(const char * attrName) {
 	string str(attrName);
 	attribute.push_back(str);
+}
+string Relation::getAttribute(int index) {
+	return attribute.at(index);
 }
 unsigned int Relation::getAttributeIndex(char * attr) {
 	string temp(attr);

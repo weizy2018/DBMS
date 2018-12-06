@@ -1,2 +1,25 @@
+2
 0
+4
+
 0
+4
+tb
+tb.rel
+name id age gender 
+varchar 20
+char 20
+int -1
+char 10
+
+0
+4
+mydb
+mydb.rel
+cat_name dog_name cat_age dog_age 
+varchar 20
+varchar 20
+int -1
+int -1
+
+

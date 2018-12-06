@@ -27,6 +27,7 @@
 #include "exception/head/FileNotFoundException.h"
 #include "exception/head/DatabaseCreateException.h"
 #include "exception/head/DatabaseException.h"
+#include "exception/head/TableCreateException.h"
 #include "tools/head/BPlusTree.h"
 
 using namespace std;
@@ -34,12 +35,12 @@ using namespace std;
 DBMS * DBMS::dbms = nullptr;
 
 DBMS::DBMS() {
-	currentDatabase = nullptr;
+	currentDatabase = "";
 	lru = new LruCache<string, Block *>(LRU_SIZE);
 	loadDatabases();
 }
 DBMS::DBMS(int memorySize) {
-	currentDatabase = nullptr;
+	currentDatabase = "";
 	int lru_size = memorySize/4;
 	cout << "LruSize = " << lru_size << endl;
 	lru = new LruCache<string, Block *>(lru_size);
@@ -85,8 +86,12 @@ void DBMS::initialDictionary(const char * dicName) {
     }
     int totalRelationship;
     int totalIndex;
+    int blockSize;
     fscanf(dicFile, "%d", &totalRelationship);
     fscanf(dicFile, "%d", &totalIndex);
+    fscanf(dicFile, "%d", &blockSize);
+
+    Dictionary::getDictionary()->setBlockSize(blockSize);
     
     for (int i = 0; i < totalRelationship; i++) {
     	unsigned int totalBlock;
@@ -123,7 +128,7 @@ void DBMS::initialDictionary(const char * dicName) {
             	typeToInt = Global::DOUBLE;
             }
             
-            rel->addType(typeToInt, value, j);
+            rel->addType(typeToInt, value);
         }
         Dictionary::getDictionary()->addRelation(rel);
     }
@@ -228,13 +233,76 @@ void DBMS::createDatabase(char * dbName, int blockSize) {
 }
 /*
  * 创建关系表
- * map<attrName, pair<typeName, typeValue>>
+ * vector<pair<attrName, pair<typeName, typeValue>>>
  */
-void DBMS::createTable(char * relName, map<string, pair<string, int>>) {
-	if (currentDatabase == nullptr) {
-		throw DatabaseException("no database selected");
+void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> attrs) {
+	//以下两行为测试用
+//	currentDatabase = "mydb";
+//	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
+
+	//未使用数据库 use databaseName;
+	if (currentDatabase == "") {
+		throw TableCreateException("no database selected");
+	}
+	//关系表重名
+	const Relation * r = Dictionary::getDictionary()->getRelation(relName);
+	if (r) {
+		string error("the table \'");
+		error.append(relName);
+		error.append("\' already exist");
+		throw TableCreateException(error);
 	}
 
+	//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName);
+	char * relFileName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
+	strcpy(relFileName, relName);
+	strcat(relFileName, ".rel");
+
+	//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName)
+	Relation * relation = new Relation(0, attrs.size(), relName, relFileName);
+	for (auto it = attrs.begin(); it != attrs.end(); it++) {
+		string attrName = it->first;
+		pair<string, int> typeValue = it->second;
+		cout << attrName << " " << typeValue.first << " " << typeValue.second << endl;
+	}
+
+	for (auto it = attrs.begin(); it != attrs.end(); it++) {
+		string attrName = it->first;
+		pair<string, int> typeValue = it->second;
+		relation->addAttribute(attrName.c_str());
+		int typeToInt;
+		if (strcmp(typeValue.first.c_str(), "int")==0){
+			typeToInt = Global::INTEGER;
+		} else if (strcmp(typeValue.first.c_str(), "char") == 0){
+			typeToInt = Global::CHAR;
+		} else if (strcmp(typeValue.first.c_str(), "varchar") == 0){
+			typeToInt = Global::VARCHAR;
+		} else if (strcmp(typeValue.first.c_str(), "float") == 0){
+			typeToInt = Global::FLOAT;
+		} else if (strcmp(typeValue.first.c_str(), "double") == 0){
+			typeToInt = Global::DOUBLE;
+		}
+		relation->addType(typeToInt, typeValue.second);
+	}
+	Dictionary::getDictionary()->addRelation(relation);
+
+	//创建关系表文件,此表用于存放数据的
+	// data/'databaseName'/'relFileName'
+	string relFilePath("data/");
+	relFilePath.append(currentDatabase);
+	relFilePath.append("/");
+	relFilePath.append(relFileName);
+
+	FILE * relFile;
+	if ((relFile = fopen(relFilePath.c_str(), "wb")) == NULL) {
+		string error("can't create file \'");
+		error.append(relFileName);
+		error.append("\'");
+		throw TableCreateException(error);
+	}
+	fclose(relFile);
+	//跟新.rel数据库字典文件
+	Dictionary::getDictionary()->writeBack();
 }
 /*
  * 更新数据库文件    好像没有必要

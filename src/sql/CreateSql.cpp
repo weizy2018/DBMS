@@ -8,7 +8,8 @@
 #include "head/CreateSql.h"
 #include <iostream>
 #include <map>
-
+#include <set>
+#include <vector>
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/DatabaseCreateException.h"
 #include "../head/Global.h"
@@ -49,7 +50,8 @@ void CreateSql::execute() {
 
 	} else if (words[1] == TABLE) {
 		cout << "create table" << endl;
-		map<string, pair<string, int>> attrs;
+		set<string> s;
+		vector<pair<string, pair<string, int>>> attrs;
 		//必须在use database之后才能创建表
 		char * relName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
 		strcpy(relName, words[2].c_str());
@@ -73,20 +75,29 @@ void CreateSql::execute() {
 						throw SqlSyntaxException("sql syntax error");
 					}
 					int value = stoi(words[i+2]);	//转换错误抛出invalid_argument异常
-					pair<map<string, pair<string, int>>::iterator, bool> ret;
-
-					ret = attrs.insert(pair<string, pair<string, int>>(attrName, pair<string, int>(type, value)));
-					if (!ret.second) {
-						throw SqlSyntaxException("the attribute \'" + attrName + "\' already exist");
+					pair<set<string>::iterator, bool> ret;
+					ret = s.insert(attrName);
+					if (ret.second) {
+						attrs.push_back(pair<string, pair<string, int>>(attrName, pair<string, int>(type, value)));
+					} else {
+						string error("the attribute \'");
+						error.append(attrName);
+						error.append("\' already exist");
+						throw SqlSyntaxException(error);
 					}
 					i += 3;
 
 				} else if (words[i] == INT || words[i] == FLOAT || words[i] == DOUBLE) {
 					strcpy(type, words[i].c_str());
-					pair<map<string, pair<string, int>>::iterator, bool> ret;
-					ret = attrs.insert(pair<string, pair<string, int>>(attrName, pair<string, int>(type, -1)));
-					if (!ret.second) {
-						throw SqlSyntaxException("the attribute \'" + attrName + "\' already exist");
+					pair<set<string>::iterator, bool> ret;
+					ret = s.insert(attrName);
+					if (ret.second) {
+						attrs.push_back(pair<string, pair<string, int>>(attrName, pair<string, int>(type, -1)));
+					} else {
+						string error("the attribute \'");
+						error.append(attrName);
+						error.append("\' already exist");
+						throw SqlSyntaxException(error);
 					}
 
 				} else {
@@ -94,7 +105,9 @@ void CreateSql::execute() {
 				}
 			}
 		}
-
+		DBMS::getDBMSInst()->createTable(relName, attrs);
+		//create table tb(name varchar(20),id char(20),age int,gender char(10));
+		//create table mydb(cat_name varchar(20),dog_name varchar(20),cat_age int,dog_age int);
 
 	} else if (words[1] == INDEX) {
 		cout << "create index" << endl;
@@ -113,7 +126,12 @@ int CreateSql::inputBlockSize() {
 		getline(cin, str);
 		try {
 			size = stoi(str);
-			success = true;
+			if (size < 1 || size > 10) {
+				cout << "Error : The size of the block must be between 1 and 10" << endl;
+			} else {
+				success = true;
+			}
+
 		} catch (invalid_argument & e) {
 			cout << "Format error" << endl;
 		}

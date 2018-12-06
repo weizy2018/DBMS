@@ -74,7 +74,7 @@ private:
     //index <tableName + "$" + colName, indexName>
     map<string, string> indexs;
 private:
-    int BlockSize;			//块的大小
+    int blockSize;			//块的大小
 };
 
 class Relation{
@@ -82,11 +82,12 @@ class Relation{
 public:
 	Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName);
 	~Relation();
-	void addType(int type, int value, int index);
+	void addType(int typeName, int value);
 	int getTotalProperty() const;
 	int getTypeName(int index) const;
 	int getTypeValue(int index) const;
-	void addAttribute(char * attr);
+	void addAttribute(const char * attr);
+	string getAttribute(int index);
 	unsigned int getAttributeIndex(char * attr);
 
 	
@@ -105,7 +106,8 @@ private:
 	char * relationFileName;
 	unsigned int totalBlock;
     int totalProperty;
-    int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
+    //int type[MAX_PROPERTY][2];  //type[1][0] 属性的名称  type[1][1]: 属性的范围（对于char或varchar类型）
+    vector<pair<int, int>> type;
     vector<string> attribute;
 
     //<colName, fileName>

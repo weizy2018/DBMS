@@ -19,6 +19,7 @@
 #include "Block.h"
 #include "../exception/head/FileNotFoundException.h"
 #include <string>
+#include <vector>
 
 #define LRU_SIZE				20		//定义lru能容纳的块数
 
@@ -45,7 +46,7 @@ public:
 	void test2();
 public:
 	void createDatabase(char * dbName, int blockSize);
-	void createTable(char * relName, map<string, pair<string, int>>);
+	void createTable(char * relName, vector<pair<string, pair<string, int>>> attrs);
 	void writeBack();				//将数据库名称写回文件databases
 private:
 	bool isExist(char * dbName);					//判断数据库是否存在

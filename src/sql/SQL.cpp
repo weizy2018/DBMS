@@ -13,6 +13,8 @@
 #include "../exception/head/SqlSyntaxException.h"
 #include "head/CreateSql.h"
 #include "head/ExecuteStatus.h"
+#include "../exception/head/DatabaseException.h"
+#include "../exception/head/TableCreateException.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -96,10 +98,10 @@ void SQL::parse() {
 		i--;
 		words.push_back(word);
 	}
-	cout << "parse finish !" << endl;
-	for (unsigned int i = 0; i < words.size(); i++) {
-		cout << words[i] << endl;
-	}
+//	cout << "parse finish !" << endl;
+//	for (unsigned int i = 0; i < words.size(); i++) {
+//		cout << words[i] << endl;
+//	}
 }
 void SQL::execute() {
 	ExecuteStatus * executeStatus = nullptr;
@@ -142,6 +144,10 @@ void SQL::execute() {
 			e.what();
 		} catch (invalid_argument & e) {
 			cout << e.what() << endl;
+		} catch (DatabaseException & e) {
+			e.what();
+		} catch (TableCreateException & e) {
+			e.what();
 		}
 
 		delete executeStatus;
