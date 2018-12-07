@@ -7,7 +7,7 @@
 
 #include "head/ExecuteStatus.h"
 
-ExecuteStatus::ExecuteStatus(const vector<string> ws) : words(ws) {
+ExecuteStatus::ExecuteStatus() {
 	// TODO Auto-generated constructor stub
 
 }

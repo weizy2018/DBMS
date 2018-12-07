@@ -10,6 +10,10 @@
 
 
 #include "ExecuteStatus.h"
+#include <iostream>
+#include <vector>
+
+using namespace std;
 
 using namespace std;
 
@@ -26,6 +30,8 @@ public:
 	void execute();
 private:
 	int inputBlockSize();
+private:
+	vector<string> words;
 
 };
 

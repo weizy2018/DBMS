@@ -47,6 +47,8 @@ public:
 public:
 	void createDatabase(char * dbName, int blockSize);
 	void createTable(char * relName, vector<pair<string, pair<string, int>>> attrs);
+	void insert(const char * tableName, vector<string> values);
+
 	void writeBack();				//将数据库名称写回文件databases
 private:
 	bool isExist(char * dbName);					//判断数据库是否存在

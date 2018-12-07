@@ -10,9 +10,13 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <string.h>
+
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/DatabaseCreateException.h"
 #include "../head/Global.h"
+#include "../head/DBMS.h"
+
 
 #define INT			"int"
 #define FLOAT		"float"
@@ -21,7 +25,7 @@
 #define VARCHAR		"varchar"
 
 
-CreateSql::CreateSql(const vector<string> words) : ExecuteStatus(words) {
+CreateSql::CreateSql(const vector<string> ws) :words(ws) {
 	// TODO Auto-generated constructor stub
 
 }

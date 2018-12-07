@@ -24,6 +24,7 @@
 #define EXIT		"exit"
 #define USE			"use"
 #define STATUS		"status"
+#define UPDATE 		"update"
 
 
 

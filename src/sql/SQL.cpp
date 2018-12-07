@@ -11,10 +11,12 @@
 #include <stack>
 
 #include "../exception/head/SqlSyntaxException.h"
-#include "head/CreateSql.h"
-#include "head/ExecuteStatus.h"
 #include "../exception/head/DatabaseException.h"
 #include "../exception/head/TableCreateException.h"
+
+#include "head/CreateSql.h"
+#include "head/ExecuteStatus.h"
+#include "head/InsertSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -72,7 +74,7 @@ void SQL::inputSql() {
 
 void SQL::parse() {
 	if (!check()) {
-		throw SqlSyntaxException("sql syntax error");
+		throw SqlSyntaxException("sql syntax error1");
 	}
 	for (unsigned int i = 0; i < sql.size(); i++) {
 		string word = "";
@@ -81,13 +83,34 @@ void SQL::parse() {
 		}
 		if (isSymbol(sql.at(i))) {
 			word += sql.at(i);
-			i++;
-			if (i < sql.size() && sql.at(i) == '=') {
-				word += '=';
+			if (sql.at(i) == '\'' || sql.at(i) == '\"') {
+				words.push_back(word);
+				word = "";
+				char temp = sql.at(i);
 				i++;
+				while (i < sql.size() && sql.at(i) != temp) {		//temp 为\'或者\"
+					word += sql.at(i);
+					i++;
+				}
+				if (i == sql.size()) {
+					throw SqlSyntaxException("sql syntax error2");
+				}
+				words.push_back(word);
+				word = "";
+				word += sql.at(i);				//sql.at(i) == temp
+				words.push_back(word);
+
+			} else {
+				i++;
+				//sym[] = {'*', '=', ',', '\'', '\"', '(', ')', ';', '>', '<'};
+				if (i < sql.size() && sql.at(i) == '=') {	//处理>=、<=的情况
+					word += '=';
+					i++;
+				}
+				words.push_back(word);
+				i--;
 			}
-			words.push_back(word);
-			i--;
+
 			continue;
 		}
 
@@ -114,6 +137,11 @@ void SQL::execute() {
 
 	} else if (words[0] == INSERT) {
 		cout << "insert" << endl;
+		executeStatus = new InsertSql(words);
+//		InsertSql * insert = new InsertSql(words);
+//		insert->execute();
+	} else if (words[0] == UPDATE) {
+		cout << "update" << endl;
 
 	} else if (words[0] == DELETE) {
 		cout << "delete" << endl;
@@ -163,7 +191,9 @@ bool SQL::isSymbol(char c) {
 	return false;
 }
 bool SQL::check() {
-	stack<char> s;
+	stack<char> s;		//括号匹配
+	stack<char> s2;		//引号匹配
+	bool left = true;
 	for (unsigned int i = 0; i < sql.size(); i++) {
 		if (sql.at(i) == '(') {
 			s.push(sql.at(i));
@@ -173,9 +203,22 @@ bool SQL::check() {
 			} else {
 				s.pop();
 			}
+		} else if (sql.at(i) == '\'' || sql.at(i) == '\"') {
+			if (left) {
+				s2.push(sql.at(i));
+				left = false;
+			} else {
+				if (s2.empty() || s2.top() != sql.at(i)) {
+					return false;
+				} else {
+					s2.pop();
+					left = true;
+				}
+			}
+
 		}
 	}
-	if (!s.empty()) {
+	if (!s.empty() || !s2.empty()) {
 		return false;
 	} else {
 		return true;

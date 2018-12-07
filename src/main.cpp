@@ -55,7 +55,7 @@ void test() {
 		} catch (SqlSyntaxException & e) {
 			e.what();
 		} catch (exception & e) {
-			e.what();
+			cout << e.what() << endl;
 		}
 	}
 

@@ -24,11 +24,14 @@
 #include "head/DBMS.h"
 #include "head/Global.h"
 #include "head/Tuple.h"
+#include "tools/head/BPlusTree.h"
+
 #include "exception/head/FileNotFoundException.h"
 #include "exception/head/DatabaseCreateException.h"
 #include "exception/head/DatabaseException.h"
 #include "exception/head/TableCreateException.h"
-#include "tools/head/BPlusTree.h"
+#include "exception/head/InsertDataException.h"
+
 
 using namespace std;
 
@@ -237,8 +240,8 @@ void DBMS::createDatabase(char * dbName, int blockSize) {
  */
 void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> attrs) {
 	//以下两行为测试用
-//	currentDatabase = "mydb";
-//	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
+	currentDatabase = "abc";
+	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
 
 	//未使用数据库 use databaseName;
 	if (currentDatabase == "") {
@@ -305,7 +308,17 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	Dictionary::getDictionary()->writeBack();
 }
 /*
- * 更新数据库文件    好像没有必要
+ * 数据的插入
+ */
+void DBMS::insert(const char * tableName, vector<string> values) {
+	//未使用数据库 use databaseName;
+	if (currentDatabase == "") {
+		throw InsertDataException("no database selected");
+	}
+
+}
+/*
+ * 更新数据库文件
  */
 void DBMS::writeBack() {
 	FILE * dbs;
