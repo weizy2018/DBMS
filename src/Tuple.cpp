@@ -194,11 +194,11 @@ void Tuple::addDouble(double data){
 	BasicType * d = new Double(data);
 	basicData.push_back(d);
 }
-void Tuple::addChar(char * data, int dataSize){
+void Tuple::addChar(const char * data, int dataSize){
 	BasicType * c = new Char(data, dataSize);
 	basicData.push_back(c);
 }
-void Tuple::addVarchar(char * data, int dataSize){
+void Tuple::addVarchar(const char * data, int dataSize){
 	BasicType * v = new Varchar(data, dataSize);
 	basicData.push_back(v);
 }

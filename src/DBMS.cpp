@@ -95,6 +95,7 @@ void DBMS::initialDictionary(const char * dicName) {
     fscanf(dicFile, "%d", &blockSize);
 
     Dictionary::getDictionary()->setBlockSize(blockSize);
+    Dictionary::getDictionary()->setHeadspace((int)(blockSize*1024*0.2));
     
     for (int i = 0; i < totalRelationship; i++) {
     	unsigned int totalBlock;
@@ -262,7 +263,8 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	strcat(relFileName, ".rel");
 
 	//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName)
-	Relation * relation = new Relation(0, attrs.size(), relName, relFileName);
+	//初始化totalBlock定义为1
+	Relation * relation = new Relation(1, attrs.size(), relName, relFileName);
 	for (auto it = attrs.begin(); it != attrs.end(); it++) {
 		string attrName = it->first;
 		pair<string, int> typeValue = it->second;
@@ -316,6 +318,96 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		throw InsertDataException("no database selected");
 	}
 
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableName);
+	if (rel == nullptr) {
+		string error("Database \'");
+		error.append(currentDatabase);
+		error.append("\' has no table \'");
+		error.append(tableName);
+		error.append("\'");
+		throw InsertDataException(error);
+	}
+	//new a tuple
+	Tuple * tup = new Tuple(rel);
+	for (int i = 0; i < values.size(); i++) {
+		int typeName = rel->getTypeName(i);
+		if (typeName == Global::INTEGER) {
+			try {
+				int intValue = stoi(values.at(i));
+				tup->addInteger(intValue);
+			} catch (exception & e) {
+				//Cannot convert "abc" to "int"
+				string error("Cannot convert \'");
+				error.append(values.at(i));
+				error.append("\' to \'int\'");
+				throw InsertDataException(error);
+			}
+		} else if (typeName == Global::FLOAT) {
+			try {
+				float floatValue = stof(values.at(i));
+				tup->addFload(floatValue);
+			} catch (exception & e) {
+				string error("Cannot convert \'");
+				error.append(values.at(i));
+				error.append("\' to \'float\'");
+				throw InsertDataException(error);
+			}
+		} else if (typeName == Global::DOUBLE) {
+			try {
+				double doubleValue = stod(values.at(i));
+				tup->addDouble(doubleValue);
+			} catch (exception & e) {
+				string error("Cannot convert \'");
+				error.append(values.at(i));
+				error.append("\' to \'double\'");
+				throw InsertDataException(error);
+			}
+		} else if (typeName == Global::CHAR) {
+			if (values.at(i).length() > rel->getTypeValue(i)) {
+				string error("\'");
+				error.append(values.at(i));
+				error.append("\' exceeds the defined length");
+				throw InsertDataException(error);
+			} else {
+				tup->addChar(values.at(i).c_str(), rel->getTypeValue(i));
+			}
+		} else if (typeName == Global::VARCHAR) {
+			if (values.at(i).length() > rel->getTypeValue(i)) {
+				string error("\'");
+				error.append(values.at(i));
+				error.append("\' exceeds the defined length");
+			} else {
+				tup->addVarchar(values.at(i).c_str(), rel->getTypeValue(i));
+			}
+		}
+	}//for (int i = 0; i < values.size(); i++)
+	/*
+	 * unsigned int totalBlock = Dictionary::getDictionary()->getRelation(0)->getTotalBlock();
+		Block * block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(0));
+		string blockName(Dictionary::getDictionary()->getRelation(0)->getRelationName());
+		string id = to_string(totalBlock);
+		blockName.append(id);
+		totalBlock += 1;
+		Dictionary::getDictionary()->getRelation(0)->setTotalBlock(totalBlock);
+	 */
+
+	//add to block
+	unsigned int totalBlock = rel->getTotalBlock();
+	string blockName(tableName);
+	string blockId = to_string(totalBlock - 1);
+	blockName.append(blockId);
+	Block * block = nullptr;
+	try {
+		block = lru->get(blockName);
+	} catch (exception & e) {
+		//该块不在缓冲区中
+
+	}
+
+
+
+
+	Dictionary::getDictionary()->setChange(true);
 }
 /*
  * 更新数据库文件

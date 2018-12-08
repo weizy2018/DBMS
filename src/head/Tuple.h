@@ -36,8 +36,8 @@ public:
 	void addInteger(int data);
 	void addFload(float data);
 	void addDouble(double data);
-	void addChar(char * data, int dataSize);
-	void addVarchar(char * data, int dataSize);
+	void addChar(const char * data, int dataSize);
+	void addVarchar(const char * data, int dataSize);
 
 	void processData();						//将数据的基本类型转换成线性表
 	char * getResult();						//返回转换结果

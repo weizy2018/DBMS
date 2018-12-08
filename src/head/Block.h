@@ -44,7 +44,8 @@ public:
     Block(char * block, const Relation * rel);
     virtual ~Block();
     
-public:
+//这两没有使用过，并没有给出实现
+private:
     void insertRecord(char *record, int recordLength);
     void removeRecord();
 
@@ -79,7 +80,7 @@ private:
 public:
     void printBlock();              					//用于输出元组的内容
     int getFreespace();									//获取该块中剩余的空闲空间
-    void addTuple(const char * p, int tupSize);		//向该块中添加一个元组
+    void addTuple(const char * p, int tupSize);			//向该块中添加一个元组
     void writeBack();
 };
 

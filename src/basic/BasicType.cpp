@@ -88,7 +88,7 @@ unsigned int Char::getDataLength(){
 }
 
 ///-----------------------------------------------
-Varchar::Varchar(char * adata, unsigned int dataLength){
+Varchar::Varchar(const char * adata, unsigned int dataLength){
 	this->dataLength = dataLength;
 	data = (char*)malloc(dataLength+1);
 	for (unsigned int i = 0; i < dataLength; i++){

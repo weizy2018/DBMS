@@ -67,7 +67,7 @@ private:
 //--------------------------------------------
 class Varchar : public BasicType {
 public:
-	Varchar(char * adata, unsigned int dataLength);
+	Varchar(const char * adata, unsigned int dataLength);
 	virtual ~Varchar();
 	virtual char * getData();
 	virtual unsigned int getDataLength();

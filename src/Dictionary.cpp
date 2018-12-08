@@ -13,12 +13,15 @@
 
 #include "head/Dictionary.h"
 #include "exception/head/FileNotFoundException.h"
+#include "head/Global.h"
+
 #include <stdlib.h>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
-#include "head/Global.h"
 #include <iostream>
+
+
 using namespace std;
 
 Dictionary * Dictionary::dic = nullptr;
@@ -33,6 +36,8 @@ Dictionary * Dictionary::getDictionary(){
 Dictionary::Dictionary(){
 	curDatabaseName = "";
 	blockSize = 4;
+	change = false;
+	headspace = (int)(blockSize*1024*0.2);
 }
 
 void Dictionary::releaseDictionary(){
@@ -73,11 +78,27 @@ const char * Dictionary::getCurDatabaseName() const {
 	return curDatabaseName;
 }
 
+//设置块的大小
 void Dictionary::setBlockSize(int size) {
 	this->blockSize = size;
 }
 int Dictionary::getBlockSize() {
 	return blockSize;
+}
+
+//设置预留空间大小 = blockSize*0.2
+void Dictionary::setHeadspace(int headspace) {
+	this->headspace = headspace;
+}
+int Dictionary::getHeadspace() {
+	return headspace;
+}
+//字典更改标志
+void Dictionary::setChange(bool change) {
+	this->change = change;
+}
+bool Dictionary::getChange() {
+	return change;
 }
 
 
@@ -87,7 +108,7 @@ void Dictionary::addRelation(Relation * rel){
 Relation * Dictionary::getRelation(int index){
     return relations.at(index);
 }
-Relation * Dictionary::getRelation(char * relationName) {
+Relation * Dictionary::getRelation(const char * relationName) {
 	Relation * r = nullptr;
 	for (vector<Relation *>::iterator it = relations.begin(); it != relations.end(); it++) {
 		const char * rName = (*it)->getRelationName();
@@ -258,6 +279,24 @@ unsigned int Relation::getAttributeIndex(char * attr) {
 		}
 	}
 	return -1;
+}
+//获取关系表中对应的块
+Block * Relation::getBlock(const string databaseName, int blockId,const  Relation * rel) {
+	FILE * relFile;
+	string relFileName("data/");
+	relFileName.append(databaseName);
+	relFileName.append(relationFileName);
+	if ((relFile = fopen(relFileName.c_str(), "rb")) == NULL) {
+		throw FileNotFoundException(relFileName);
+	}
+	int blockSize = Dictionary::getDictionary()->getBlockSize();
+	fseek(relFile, blockSize*1024*blockId, SEEK_SET);
+	char * blockData = (char*)malloc(blockSize*1024);
+	fread(blockData, blockSize*1024, 1, relFile);
+	//Block(char * block, const Relation * rel);
+	Block * block = new Block(blockData, rel);
+	//这里不用释放blockData
+	return block;
 }
 
 

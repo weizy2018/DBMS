@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 #include "../tools/head/BPlusTree.h"
+#include "head/Block.h"
 
 using namespace std;
 
@@ -46,11 +47,17 @@ public:
 public:
     void addRelation(Relation * rel);
     Relation * getRelation(int index);
-    Relation * getRelation(char * relationname);
+    Relation * getRelation(const char * relationname);
     void setCurDatabaseName(const char * curDBName);
 	const char * getCurDatabaseName() const;
+
 	void setBlockSize(int size);
 	int getBlockSize();
+	void setHeadspace(int headspace);
+	int getHeadspace();
+
+	void setChange(bool change);
+	bool getChange();
 public:
 	void printDictionary(); //输出该字典到控制台上
 
@@ -75,6 +82,9 @@ private:
     map<string, string> indexs;
 private:
     int blockSize;			//块的大小
+    int headspace;			//每个块的预留空间 = blockSize*1024*0.2
+private:
+    bool change;			//字典更改标志
 };
 
 class Relation{
@@ -100,6 +110,8 @@ public:
 	void setTotalBlock(unsigned int totalBlock);
 
 	void printRelation();
+public:
+	Block * getBlock(const string databaseName, int blockId, const Relation * rel);
 
 private:
 	char * relationName;
