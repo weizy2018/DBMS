@@ -263,8 +263,8 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	strcat(relFileName, ".rel");
 
 	//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName)
-	//初始化totalBlock定义为1
-	Relation * relation = new Relation(1, attrs.size(), relName, relFileName);
+	//初始化totalBlock定义为0
+	Relation * relation = new Relation(0, attrs.size(), relName, relFileName);
 	for (auto it = attrs.begin(); it != attrs.end(); it++) {
 		string attrName = it->first;
 		pair<string, int> typeValue = it->second;
@@ -380,33 +380,59 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 				tup->addVarchar(values.at(i).c_str(), rel->getTypeValue(i));
 			}
 		}
-	}//for (int i = 0; i < values.size(); i++)
-	/*
-	 * unsigned int totalBlock = Dictionary::getDictionary()->getRelation(0)->getTotalBlock();
-		Block * block = new Block(totalBlock, Dictionary::getDictionary()->getRelation(0));
-		string blockName(Dictionary::getDictionary()->getRelation(0)->getRelationName());
-		string id = to_string(totalBlock);
-		blockName.append(id);
-		totalBlock += 1;
-		Dictionary::getDictionary()->getRelation(0)->setTotalBlock(totalBlock);
-	 */
+	}
+	tup->processData();		//一定要有
 
 	//add to block
+	//获取关系表中的最后一块，看该块是否满了，如果没满则在这个块中插入数据，否则新建一块
 	unsigned int totalBlock = rel->getTotalBlock();
 	string blockName(tableName);
-	string blockId = to_string(totalBlock - 1);
-	blockName.append(blockId);
+//	string blockId = to_string(totalBlock);
+//	blockName.append(blockId);
+
 	Block * block = nullptr;
-	try {
-		block = lru->get(blockName);
-	} catch (exception & e) {
-		//该块不在缓冲区中
+	if (totalBlock == 0) {
+		blockName.append("0");
 
+		block = new Block(totalBlock, rel);
+		totalBlock += 1;
+		rel->setTotalBlock(totalBlock);
+	} else {
+		string blockId = to_string(totalBlock - 1);
+		blockName.append(blockId);
+		try {
+			block = lru->get(blockName);
+		} catch (exception & e) {			//该块不在缓冲区中
+			//Block * getBlock(const string databaseName, int blockId);
+			block = rel->getBlock(currentDatabase, totalBlock);
+		}
 	}
+	//block->addTuple(tup->getResult(), tup->getTupLength());
+	if (block->getFreespace() > Dictionary::getDictionary()->getHeadspace()) {
+		block->addTuple(tup->getResult(), tup->getTupLength());
+		Block * b = lru->put(blockName, block);
+		if (b) {
+			delete b;
+		}
+	} else {
+		blockName = "";
+		blockName.append(tableName);
+		string blockId = to_string(totalBlock);
+		blockName.append(blockId);
 
+		block = new Block(totalBlock, rel);
 
+		totalBlock += 1;
+		rel->setTotalBlock(totalBlock);
 
-
+		block->addTuple(tup->getResult(), tup->getTupLength());
+		Block * b = lru->put(blockName, block);
+		if (b) {
+			delete b;
+		}
+	}
+	delete tup;
+	cout << "insert OK" << endl;
 	Dictionary::getDictionary()->setChange(true);
 }
 /*

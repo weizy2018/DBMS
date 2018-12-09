@@ -111,7 +111,7 @@ public:
 
 	void printRelation();
 public:
-	Block * getBlock(const string databaseName, int blockId, const Relation * rel);
+	Block * getBlock(const string databaseName, unsigned int blockId);
 
 private:
 	char * relationName;

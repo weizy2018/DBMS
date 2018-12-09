@@ -281,7 +281,7 @@ unsigned int Relation::getAttributeIndex(char * attr) {
 	return -1;
 }
 //获取关系表中对应的块
-Block * Relation::getBlock(const string databaseName, int blockId,const  Relation * rel) {
+Block * Relation::getBlock(const string databaseName, unsigned int blockId) {
 	FILE * relFile;
 	string relFileName("data/");
 	relFileName.append(databaseName);
@@ -290,11 +290,11 @@ Block * Relation::getBlock(const string databaseName, int blockId,const  Relatio
 		throw FileNotFoundException(relFileName);
 	}
 	int blockSize = Dictionary::getDictionary()->getBlockSize();
-	fseek(relFile, blockSize*1024*blockId, SEEK_SET);
+	fseek(relFile, blockSize*1024*(blockId - 1), SEEK_SET);
 	char * blockData = (char*)malloc(blockSize*1024);
 	fread(blockData, blockSize*1024, 1, relFile);
 	//Block(char * block, const Relation * rel);
-	Block * block = new Block(blockData, rel);
+	Block * block = new Block(blockData, this);
 	//这里不用释放blockData
 	return block;
 }
