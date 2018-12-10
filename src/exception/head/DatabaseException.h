@@ -13,7 +13,7 @@
 
 using namespace std;
 
-class DatabaseException {
+class DatabaseException : public exception {
 public:
 	DatabaseException();
 	DatabaseException(string message);

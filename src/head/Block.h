@@ -36,6 +36,7 @@ typedef short block_size;
 #define TUPLES_COUNT 20             //规定每行的属性个数
 
 class Position;
+class Relation;
 
 class Block {
 public:

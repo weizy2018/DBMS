@@ -289,6 +289,7 @@ void Tuple::printTuple() {
 			break;
 		}
 	}
+	printf("\n");
 }
 
 //-------------------------------

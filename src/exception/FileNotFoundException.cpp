@@ -22,7 +22,7 @@ FileNotFoundException::~FileNotFoundException() {
 }
 
 const char * FileNotFoundException::what() const throw() {
-	string error = "File" + fileName + " not found";
+	string error = "File \'" + fileName + "\' not found";
 	cout << "FileNotFoundException: " << error << endl;
 
 	return error.c_str();

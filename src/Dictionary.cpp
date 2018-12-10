@@ -14,6 +14,7 @@
 #include "head/Dictionary.h"
 #include "exception/head/FileNotFoundException.h"
 #include "head/Global.h"
+#include "head/DBMS.h"
 
 #include <stdlib.h>
 #include <vector>
@@ -45,7 +46,9 @@ void Dictionary::releaseDictionary(){
     dic = nullptr;
 }
 Dictionary::~Dictionary(){
-
+	if (change) {
+		writeBack();
+	}
     while (!relations.empty()){
     	Relation * rel = relations.back();
     	delete rel;
@@ -245,6 +248,18 @@ void Relation::printRelation(){
         printf("%d\t%d\n", type.at(i).first, type.at(i).second);
     }
 }
+void Relation::printRelationData() {
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		//Block * DBMS::getBlock(const string relationName, unsigned int blockId)
+		Block * block = DBMS::getDBMSInst()->getBlock(relationName, i);
+		if (block == nullptr) {
+			block = this->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			//void putBlock(string relationName, unsigned int blockId, Block * value);
+			DBMS::getDBMSInst()->putBlock(relationName, i, block);
+		}
+		block->printBlock();
+	}
+}
 void Relation::setRelationName(char * relName){
 	relationName = relName;
 }
@@ -285,12 +300,13 @@ Block * Relation::getBlock(const string databaseName, unsigned int blockId) {
 	FILE * relFile;
 	string relFileName("data/");
 	relFileName.append(databaseName);
+	relFileName.append("/");
 	relFileName.append(relationFileName);
 	if ((relFile = fopen(relFileName.c_str(), "rb")) == NULL) {
 		throw FileNotFoundException(relFileName);
 	}
 	int blockSize = Dictionary::getDictionary()->getBlockSize();
-	fseek(relFile, blockSize*1024*(blockId - 1), SEEK_SET);
+	fseek(relFile, blockSize*1024*blockId, SEEK_SET);
 	char * blockData = (char*)malloc(blockSize*1024);
 	fread(blockData, blockSize*1024, 1, relFile);
 	//Block(char * block, const Relation * rel);

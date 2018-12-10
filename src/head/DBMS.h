@@ -34,7 +34,7 @@ private:
 
 public:
 	static DBMS * getDBMSInst();
-	static DBMS * releaseDBMSInst();
+	static void releaseDBMSInst();
 public:
 	virtual ~DBMS();
 
@@ -48,10 +48,19 @@ public:
 	void createDatabase(char * dbName, int blockSize);
 	void createTable(char * relName, vector<pair<string, pair<string, int>>> attrs);
 	void insert(const char * tableName, vector<string> values);
-
+	void select(const vector<string> tableNames, vector<string> condition);
+	void changeDatabase(const char * databaseName);
+public:
+	Block * getBlock(const string relationName, unsigned int blockId);	//从lru中获取块，失败返回nullptr
+	Block * getBlock(const string key);
+	void putBlock(string relationName, unsigned int blockId, Block * value);
+	void putBlock(string key, Block * value);													//将块放入lru中
+public:
+	string getCurrentDatabase() const;
+public:
 	void writeBack();				//将数据库名称写回文件databases
 private:
-	bool isExist(char * dbName);					//判断数据库是否存在
+	bool isExist(const char * dbName);					//判断数据库是否存在
 private:
 	LruCache<string, Block *> * lru;
 	vector<char *> databases;		//保存所有数据库的名称

@@ -18,7 +18,7 @@
 #include <map>
 #include <string>
 #include "../tools/head/BPlusTree.h"
-#include "head/Block.h"
+#include "Block.h"
 
 using namespace std;
 
@@ -27,6 +27,7 @@ using namespace std;
 #define MAX_PROPERTY        30  //每个表最多包含的属性个数
 
 class Relation;
+class Block;
 
 class Dictionary {
 
@@ -108,7 +109,8 @@ public:
 
 	unsigned int getTotalBlock();
 	void setTotalBlock(unsigned int totalBlock);
-
+public:
+	void printRelationData();
 	void printRelation();
 public:
 	Block * getBlock(const string databaseName, unsigned int blockId);

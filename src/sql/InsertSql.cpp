@@ -8,6 +8,7 @@
 #include "head/InsertSql.h"
 #include "../exception/head/SqlSyntaxException.h"
 #include "../head/Global.h"
+#include "../head/DBMS.h"
 
 #include <string.h>
 #include <iostream>
@@ -50,6 +51,7 @@ void InsertSql::execute() {
 	for (auto it = values.begin(); it != values.end(); it++) {
 		cout << *it << endl;
 	}
+	DBMS::getDBMSInst()->insert(tableName, values);
 
 }
 

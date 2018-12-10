@@ -17,6 +17,8 @@
 #include "head/CreateSql.h"
 #include "head/ExecuteStatus.h"
 #include "head/InsertSql.h"
+#include "head/UseSql.h"
+#include "head/SelectSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -134,6 +136,7 @@ void SQL::execute() {
 
 	} else if (words[0] == SELECT) {
 		cout << "select" << endl;
+		executeStatus = new SelectSql(words);
 
 	} else if (words[0] == INSERT) {
 		cout << "insert" << endl;
@@ -148,6 +151,7 @@ void SQL::execute() {
 
 	} else if (words[0] == USE) {
 		cout << "use" << endl;
+		executeStatus = new UseSql(words);
 
 	} else if (words[0] == SHOW) {
 		cout << "show" << endl;
@@ -157,6 +161,7 @@ void SQL::execute() {
 
 	} else if (words[0] == EXIT) {
 		cout << "exit" << endl;
+		DBMS::releaseDBMSInst();
 		finish = true;
 	} else if (words[0] == DROP) {
 		cout << "drop" << endl;

@@ -31,6 +31,7 @@
 #include "exception/head/DatabaseException.h"
 #include "exception/head/TableCreateException.h"
 #include "exception/head/InsertDataException.h"
+#include "exception/head/QueryException.h"
 
 
 using namespace std;
@@ -56,9 +57,17 @@ DBMS * DBMS::getDBMSInst() {
 	return dbms;
 }
 
+void DBMS::releaseDBMSInst() {
+	delete dbms;
+}
+
 
 DBMS::~DBMS() {
 	delete lru;
+	Dictionary::getDictionary()->releaseDictionary();
+	for (auto it = databases.begin(); it != databases.end(); it++) {
+		free(*it);
+	}
 
 }
 void DBMS::loadDatabases() {
@@ -85,7 +94,7 @@ void DBMS::initialDictionary(const char * dicName) {
     cout << "dicDescName : " << dicDescName << endl;
 
     if ((dicFile = fopen(dicDescName.c_str(), "r")) == NULL) {
-        throw FileNotFoundException("FileNotFoundException: can't not open " + dicDescName);
+        throw FileNotFoundException("cannot open \'" + dicDescName + "\'");
     }
     int totalRelationship;
     int totalIndex;
@@ -241,8 +250,8 @@ void DBMS::createDatabase(char * dbName, int blockSize) {
  */
 void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> attrs) {
 	//以下两行为测试用
-	currentDatabase = "abc";
-	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
+//	currentDatabase = "abc";
+//	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
 
 	//未使用数据库 use databaseName;
 	if (currentDatabase == "") {
@@ -329,7 +338,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 	}
 	//new a tuple
 	Tuple * tup = new Tuple(rel);
-	for (int i = 0; i < values.size(); i++) {
+	for (unsigned int i = 0; i < values.size(); i++) {
 		int typeName = rel->getTypeName(i);
 		if (typeName == Global::INTEGER) {
 			try {
@@ -363,7 +372,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 				throw InsertDataException(error);
 			}
 		} else if (typeName == Global::CHAR) {
-			if (values.at(i).length() > rel->getTypeValue(i)) {
+			if (values.at(i).length() > (unsigned int)rel->getTypeValue(i)) {
 				string error("\'");
 				error.append(values.at(i));
 				error.append("\' exceeds the defined length");
@@ -372,7 +381,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 				tup->addChar(values.at(i).c_str(), rel->getTypeValue(i));
 			}
 		} else if (typeName == Global::VARCHAR) {
-			if (values.at(i).length() > rel->getTypeValue(i)) {
+			if (values.at(i).length() > (unsigned int)rel->getTypeValue(i)) {
 				string error("\'");
 				error.append(values.at(i));
 				error.append("\' exceeds the defined length");
@@ -382,6 +391,8 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		}
 	}
 	tup->processData();		//一定要有
+	cout << "tup data :" << endl;
+	tup->printTuple();
 
 	//add to block
 	//获取关系表中的最后一块，看该块是否满了，如果没满则在这个块中插入数据，否则新建一块
@@ -392,27 +403,32 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 
 	Block * block = nullptr;
 	if (totalBlock == 0) {
+		cout << "DBMS::insert totalBlock == 0" << endl;
 		blockName.append("0");
 
 		block = new Block(totalBlock, rel);
 		totalBlock += 1;
 		rel->setTotalBlock(totalBlock);
 	} else {
+		cout << "DBMS::insert totalBlock != 0" << endl;
 		string blockId = to_string(totalBlock - 1);
 		blockName.append(blockId);
 		try {
 			block = lru->get(blockName);
 		} catch (exception & e) {			//该块不在缓冲区中
 			//Block * getBlock(const string databaseName, int blockId);
-			block = rel->getBlock(currentDatabase, totalBlock);
+			block = rel->getBlock(currentDatabase, totalBlock - 1);
 		}
 	}
 	//block->addTuple(tup->getResult(), tup->getTupLength());
 	if (block->getFreespace() > Dictionary::getDictionary()->getHeadspace()) {
 		block->addTuple(tup->getResult(), tup->getTupLength());
 		Block * b = lru->put(blockName, block);
+		cout << "DBMS::insert lru->put OK" << endl;
 		if (b) {
+			cout << "DBMS::insert before delete" << endl;
 			delete b;
+			cout << "DBMS::insert after delete" << endl;
 		}
 	} else {
 		blockName = "";
@@ -435,6 +451,48 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 	cout << "insert OK" << endl;
 	Dictionary::getDictionary()->setChange(true);
 }
+
+//select
+void DBMS::select(const vector<string> tableNames, vector<string> condition) {
+	if (currentDatabase == "") {
+		throw InsertDataException("no database selected");
+	}
+	char tableName[Global::MAX_RELATION_NAME];
+	strcpy(tableName, tableNames.at(0).c_str());
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableName);
+	if (rel == nullptr) {
+		string error("Database \'");
+		error.append(currentDatabase);
+		error.append("\' has no table \'");
+		error.append(tableName);
+		error.append("\'");
+		throw QueryException(error);
+	}
+	rel->printRelationData();
+}
+//
+void DBMS::changeDatabase(const char * databaseName) {
+	//先看databaseName是否存在
+	if (!isExist(databaseName)) {
+		string error("Unknown database \'");
+		error.append(databaseName);
+		error.append("\'");
+		throw DatabaseException(error);
+	}
+	if (lru) {
+		delete lru;
+		lru = nullptr;
+	}
+	lru = new LruCache<string, Block *>(LRU_SIZE);
+	Dictionary::getDictionary()->releaseDictionary();
+	string dbName(databaseName);
+	currentDatabase = dbName;
+	this->initialDictionary(databaseName);
+
+	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
+	cout << "change success" << endl;
+}
+
 /*
  * 更新数据库文件
  */
@@ -451,13 +509,56 @@ void DBMS::writeBack() {
 /*
  * 判断数据库名称是否存在
  */
-bool DBMS::isExist(char * dbName) {
+bool DBMS::isExist(const char * dbName) {
 	for (auto it = databases.begin(); it != databases.end(); it++) {
 		if (strcmp(dbName, *it) == 0) {
 			return true;
 		}
 	}
 	return false;
+}
+string DBMS::getCurrentDatabase() const {
+	return this->currentDatabase;
+}
+
+//从lru中获取块，失败返回nullptr
+Block * DBMS::getBlock(const string relationName, unsigned int blockId) {
+	string key(relationName);
+	string id = to_string(blockId);
+	key.append(id);
+	Block * block = nullptr;
+	try {
+		block = lru->get(key);
+	} catch(exception & e) {
+		block = nullptr;
+	}
+	return block;
+}
+//从lru中获取块，失败返回nullptr
+Block * DBMS::getBlock(const string key) {
+	Block * block = nullptr;
+	try {
+		block = lru->get(key);
+	} catch (exception & e) {
+		block = nullptr;
+	}
+	return block;
+}
+//把块放入lru中
+void DBMS::putBlock(string relationName, unsigned int blockId, Block * value) {
+	string key(relationName);
+	key.append(to_string(blockId));
+	Block * b = lru->put(key, value);
+	if (b) {
+		delete b;
+	}
+}
+//把块放入lru中
+void DBMS::putBlock(string key, Block * value) {
+	Block * b = lru->put(key, value);
+	if (b) {
+		delete b;
+	}
 }
 
 
