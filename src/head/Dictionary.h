@@ -65,19 +65,16 @@ public:
 	void writeBack();		//对字典更新后写回文件
 public:
 	void addStringIndex(string key, BPlusTree<string, unsigned long int> * value);
-	void addIntIndex(string key, BPlusTree<int, unsigned long int> * value);
-	void addFloatIndex(string key, BPlusTree<float, unsigned long int> * value);
-	void addDoubleIndex(string key, BPlusTree<double, unsigned long int> * value);
 	void addIndex(string key, string indexName);
+public:
+	BPlusTree<string, unsigned long int> * getStringIndex(const string tableName, const string colName);
+
 private:
     vector<Relation*> relations;
     const char * curDatabaseName;
 
     //索引  string = tableName + "$" + colName
     map<string, BPlusTree<string, unsigned long int> *> stringIndex;
-    map<string, BPlusTree<int, unsigned long int> *> intIndex;
-    map<string, BPlusTree<float, unsigned long int> *> floatIndex;
-    map<string, BPlusTree<double, unsigned long int> *> doubleIndex;
 
     //index <tableName + "$" + colName, indexName>
     map<string, string> indexs;

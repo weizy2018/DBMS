@@ -92,11 +92,19 @@ void CreateSql::execute() {
 					i += 3;
 
 				} else if (words[i] == INT || words[i] == FLOAT || words[i] == DOUBLE) {
+					int value;
+					if (words[i] == INT) {
+						value = 12;
+					} else if (words[i] == FLOAT) {
+						value = 18;
+					} else if (words[i] == DOUBLE) {
+						value = 28;
+					}
 					strcpy(type, words[i].c_str());
 					pair<set<string>::iterator, bool> ret;
 					ret = s.insert(attrName);
 					if (ret.second) {
-						attrs.push_back(pair<string, pair<string, int>>(attrName, pair<string, int>(type, -1)));
+						attrs.push_back(pair<string, pair<string, int>>(attrName, pair<string, int>(type, value)));
 					} else {
 						string error("the attribute \'");
 						error.append(attrName);

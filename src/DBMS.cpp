@@ -172,31 +172,9 @@ void DBMS::initialDictionary(const char * dicName) {
     	int valueLen    = sizeof(unsigned long int);
 
     	//初始化相应的索引
-    	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
-    		BPlusTree<int, unsigned long int>* tree;
-    		tree = new BPlusTree<int, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    		Dictionary::getDictionary()->addIntIndex(key, tree);
-
-    	} else if (rel->getTypeName(attrIndex) == Global::FLOAT) {
-    		BPlusTree<float, unsigned long int> * tree;
-    		tree = new BPlusTree<float, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    		Dictionary::getDictionary()->addFloatIndex(key, tree);
-
-    	} else if (rel->getTypeName(attrIndex) == Global::DOUBLE) {
-    		BPlusTree<double, unsigned long int> * tree;
-    		tree = new BPlusTree<double, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    		Dictionary::getDictionary()->addDoubleIndex(key, tree);
-
-    	} else if (rel->getTypeName(attrIndex) == Global::CHAR) {
-    		BPlusTree<string, unsigned long int> * tree;
-    		tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    		Dictionary::getDictionary()->addStringIndex(key, tree);
-
-    	} else if (rel->getTypeName(attrIndex) == Global::VARCHAR) {
-    		BPlusTree<string, unsigned long int> * tree;
-    		tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    		Dictionary::getDictionary()->addStringIndex(key, tree);
-    	}
+    	BPlusTree<string, unsigned long int> * tree;
+    	tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	Dictionary::getDictionary()->addStringIndex(key, tree);
     }
     fclose(dicFile);
     
@@ -336,6 +314,9 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		error.append("\'");
 		throw InsertDataException(error);
 	}
+	if (values.size() != (unsigned int)rel->getTotalProperty()) {
+		throw InsertDataException("Column count doesn't match value count");
+	}
 	//new a tuple
 	Tuple * tup = new Tuple(rel);
 	for (unsigned int i = 0; i < values.size(); i++) {
@@ -391,8 +372,8 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		}
 	}
 	tup->processData();		//一定要有
-	cout << "tup data :" << endl;
-	tup->printTuple();
+//	cout << "tup data :" << endl;
+//	tup->printTuple();
 
 	//add to block
 	//获取关系表中的最后一块，看该块是否满了，如果没满则在这个块中插入数据，否则新建一块
@@ -400,17 +381,18 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 	string blockName(tableName);
 //	string blockId = to_string(totalBlock);
 //	blockName.append(blockId);
+	unsigned int indexValue;
 
 	Block * block = nullptr;
 	if (totalBlock == 0) {
-		cout << "DBMS::insert totalBlock == 0" << endl;
+		indexValue = 0;
 		blockName.append("0");
 
 		block = new Block(totalBlock, rel);
 		totalBlock += 1;
 		rel->setTotalBlock(totalBlock);
 	} else {
-		cout << "DBMS::insert totalBlock != 0" << endl;
+		indexValue = totalBlock - 1;
 		string blockId = to_string(totalBlock - 1);
 		blockName.append(blockId);
 		try {
@@ -420,17 +402,15 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 			block = rel->getBlock(currentDatabase, totalBlock - 1);
 		}
 	}
-	//block->addTuple(tup->getResult(), tup->getTupLength());
 	if (block->getFreespace() > Dictionary::getDictionary()->getHeadspace()) {
 		block->addTuple(tup->getResult(), tup->getTupLength());
 		Block * b = lru->put(blockName, block);
-		cout << "DBMS::insert lru->put OK" << endl;
 		if (b) {
-			cout << "DBMS::insert before delete" << endl;
 			delete b;
-			cout << "DBMS::insert after delete" << endl;
 		}
 	} else {
+		indexValue = totalBlock;
+
 		blockName = "";
 		blockName.append(tableName);
 		string blockId = to_string(totalBlock);
@@ -448,6 +428,14 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		}
 	}
 	delete tup;
+	//如果创建了索引，需要在索引中添加相应的内容
+	for (int i = 0; i < rel->getTotalProperty(); i++) {
+		string attr = rel->getAttribute(i);
+		BPlusTree<string, unsigned long int> * tree = Dictionary::getDictionary()->getStringIndex(tableName, attr);
+		if (tree != nullptr) {
+			tree->put(values.at(i), indexValue);
+		}
+	}
 	cout << "insert OK" << endl;
 	Dictionary::getDictionary()->setChange(true);
 }

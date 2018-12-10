@@ -59,20 +59,20 @@ Dictionary::~Dictionary(){
     }
     stringIndex.clear();
 
-    for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
-    	delete(it->second);
-    }
-    intIndex.clear();
-
-    for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
-    	delete(it->second);
-    }
-    floatIndex.clear();
-
-    for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
-    	delete(it->second);
-    }
-    doubleIndex.clear();
+//    for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
+//    	delete(it->second);
+//    }
+//    intIndex.clear();
+//
+//    for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
+//    	delete(it->second);
+//    }
+//    floatIndex.clear();
+//
+//    for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
+//    	delete(it->second);
+//    }
+//    doubleIndex.clear();
 }
 void Dictionary::setCurDatabaseName(const char * curDBName) {
 	curDatabaseName = curDBName;
@@ -198,18 +198,25 @@ void Dictionary::writeBack() {
 void Dictionary::addStringIndex(string key, BPlusTree<string, unsigned long int> * value) {
 	stringIndex.insert(pair<string, BPlusTree<string, unsigned long int> *>(key, value));
 }
-void Dictionary::addIntIndex(string key, BPlusTree<int, unsigned long int> * value) {
-	intIndex.insert(pair<string, BPlusTree<int, unsigned long int> *>(key, value));
-}
-void Dictionary::addFloatIndex(string key, BPlusTree<float, unsigned long int> * value) {
-	floatIndex.insert(pair<string, BPlusTree<float, unsigned long int> *>(key, value));
-}
-void Dictionary::addDoubleIndex(string key, BPlusTree<double, unsigned long int> * value) {
-	doubleIndex.insert(pair<string, BPlusTree<double, unsigned long int> *>(key, value));
-}
+
 void Dictionary::addIndex(string key, string indexName) {
 	indexs.insert(pair<string, string>(key, indexName));
 }
+
+BPlusTree<string, unsigned long int> * Dictionary::getStringIndex(const string tableName, const string colName) {
+	BPlusTree<string, unsigned long int> * tree = nullptr;
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	for (auto it = stringIndex.begin(); it != stringIndex.end(); it++) {
+		if (it->first == key) {
+			tree = it->second;
+			break;
+		}
+	}
+	return tree;
+}
+
 
 //==============================================
 

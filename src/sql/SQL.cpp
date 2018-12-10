@@ -13,6 +13,7 @@
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/DatabaseException.h"
 #include "../exception/head/TableCreateException.h"
+#include "../exception/head/QueryException.h"
 
 #include "head/CreateSql.h"
 #include "head/ExecuteStatus.h"
@@ -180,6 +181,8 @@ void SQL::execute() {
 		} catch (DatabaseException & e) {
 			e.what();
 		} catch (TableCreateException & e) {
+			e.what();
+		} catch (QueryException & e) {
 			e.what();
 		}
 

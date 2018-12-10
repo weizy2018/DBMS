@@ -1,25 +1,16 @@
-2
+1
 0
 4
 
 0
-4
-tb
-tb.rel
-name id age gender 
+5
+abc
+abc.rel
+name gender age height money 
 varchar 20
-char 20
-int -1
-char 10
-
-0
-4
-mydb
-mydb.rel
-cat_name dog_name cat_age dog_age 
-varchar 20
-varchar 20
-int -1
-int -1
+char 5
+int 12
+float 18
+double 28
 
 
