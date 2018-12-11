@@ -4,13 +4,13 @@
 
 0
 5
-abc
-abc.rel
+student
+student.rel
 name gender age height money 
 varchar 20
 char 5
-int 12
-float 18
-double 28
+int 4
+float 4
+double 8
 
 

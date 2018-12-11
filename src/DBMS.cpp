@@ -32,6 +32,7 @@
 #include "exception/head/TableCreateException.h"
 #include "exception/head/InsertDataException.h"
 #include "exception/head/QueryException.h"
+#include "exception/head/IndexCreateException.h"
 
 
 using namespace std;
@@ -163,10 +164,15 @@ void DBMS::initialDictionary(const char * dicName) {
     	unsigned int attrIndex = rel->getAttributeIndex(colName);
 
     	//BPlusTree(const char * indexFileName, int keyLen, int valueLen, bool create);
+    	string path("data/");
+    	path.append(currentDatabase + "/");
+
     	string indexFileName(tableName);
     	indexFileName.append("_");
     	indexFileName.append(colName);
     	indexFileName.append(".ind");
+
+    	path.append(indexFileName);
 
     	int indexKeyLen = rel->getTypeValue(attrIndex);
     	int valueLen    = sizeof(unsigned long int);
@@ -174,27 +180,27 @@ void DBMS::initialDictionary(const char * dicName) {
     	//初始化相应的索引
     	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
     	    Bplustree<int, unsigned long int>* tree;
-    	    tree = new Bplustree<int, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    tree = new Bplustree<int, unsigned long int>(path.c_str(), indexKeyLen, valueLen, false);
     	    Dictionary::getDictionary()->addIntIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::FLOAT) {
     		Bplustree<float, unsigned long int> * tree;
-    	    tree = new Bplustree<float, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    tree = new Bplustree<float, unsigned long int>(path.c_str(), indexKeyLen, valueLen, false);
     	    Dictionary::getDictionary()->addFloatIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::DOUBLE) {
     		Bplustree<double, unsigned long int> * tree;
-    	    tree = new Bplustree<double, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    tree = new Bplustree<double, unsigned long int>(path.c_str(), indexKeyLen, valueLen, false);
     	    Dictionary::getDictionary()->addDoubleIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::CHAR) {
     	    BPlusTree<string, unsigned long int> * tree;
-    	    tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    tree = new BPlusTree<string, unsigned long int>(path.c_str(), indexKeyLen, valueLen, false);
     	    Dictionary::getDictionary()->addStringIndex(key, tree);
 
     	} else if (rel->getTypeName(attrIndex) == Global::VARCHAR) {
     	    BPlusTree<string, unsigned long int> * tree;
-    	    tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    tree = new BPlusTree<string, unsigned long int>(path.c_str(), indexKeyLen, valueLen, false);
     	    Dictionary::getDictionary()->addStringIndex(key, tree);
     	}
     }
@@ -317,6 +323,73 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	fclose(relFile);
 	//跟新.rel数据库字典文件
 	Dictionary::getDictionary()->writeBack();
+}
+void DBMS::createIndex(const string indexName, const string tableName, const string attrName) {
+	if (currentDatabase == "") {
+		throw IndexCreateException("no database selected");
+	}
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableName.c_str());
+	if (rel == nullptr) {
+		//The database "abc" does not have a table named "def"
+		string error("The database \'");
+		error.append(currentDatabase);
+		error.append("\' does not have a table named \'");
+		error.append(tableName + "\'");
+		throw IndexCreateException(error);
+	}
+	if (!rel->hasAttribute(attrName)) {
+		string error("The table \'");
+		error.append(tableName);
+		error.append("\' does not have a column named \'");
+		error.append(attrName + "\'");
+		throw IndexCreateException(error);
+	}
+	string key(tableName);
+	key.append("$");
+	key.append(attrName);
+	//Dictionary::getDictionary()->addIndex(key, indexName);
+	string indName(indexName);
+
+	if (!Dictionary::getDictionary()->addIndex(key, indName)) {
+		string error("The column \'" + attrName);
+		error.append("has exist an index");
+		throw IndexCreateException(error);
+	}
+
+	string path("data/");
+	path.append(currentDatabase + "/");
+
+	string indexFileName(tableName);
+	indexFileName.append("_");
+	indexFileName.append(attrName);
+	indexFileName.append(".ind");
+
+	path.append(indexFileName);
+
+	unsigned int attrIndex = rel->getAttributeIndex(attrName.c_str());
+	int type = rel->getTypeName(attrIndex);
+
+	int indexKeyLen = rel->getTypeValue(attrIndex);
+	int valueLen    = sizeof(unsigned long int);
+
+	if (type == Global::INTEGER) {
+		Bplustree<int, unsigned long int> * tree =
+				new Bplustree<int, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Dictionary::getDictionary()->addIntIndex(key, tree);
+	} else if (type == Global::FLOAT) {
+		Bplustree<float, unsigned long int>  * tree =
+				new Bplustree<float, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Dictionary::getDictionary()->addFloatIndex(key, tree);
+	} else if (type == Global::DOUBLE) {
+		Bplustree<double, unsigned long int> * tree =
+				new Bplustree<double, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Dictionary::getDictionary()->addDoubleIndex(key, tree);
+	} else {
+		BPlusTree<string, unsigned long int> * tree =
+				new BPlusTree<string, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Dictionary::getDictionary()->addStringIndex(key, tree);
+	}
+	cout << "index create success" << endl;
 }
 /*
  * 数据的插入

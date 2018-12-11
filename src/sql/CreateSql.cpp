@@ -14,6 +14,9 @@
 
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/DatabaseCreateException.h"
+#include "../exception/head/TableCreateException.h"
+#include "../exception/head/IndexCreateException.h"
+
 #include "../head/Global.h"
 #include "../head/DBMS.h"
 
@@ -57,7 +60,10 @@ void CreateSql::execute() {
 		set<string> s;
 		vector<pair<string, pair<string, int>>> attrs;
 		//必须在use database之后才能创建表
-		char * relName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
+		char * relName = (char*)malloc(Global::MAX_RELATION_NAME);
+		if (words[2].size() > Global::MAX_RELATION_NAME) {
+			throw TableCreateException("the length of table name to long");
+		}
 		strcpy(relName, words[2].c_str());
 		if (words[3] != "(") {
 			throw SqlSyntaxException("sql syntax error");
@@ -121,8 +127,25 @@ void CreateSql::execute() {
 	} else if (words[1] == INDEX) {
 		cout << "create index" << endl;
 		//create index student_name on student(name);
+//		char indexName[Global::MAX_IDNEX_NAME];
+//		char tableName[Global::MAX_RELATION_NAME];
+//		char arrtName[Global::MAX_ATTRIBUTE_NAME];
 
+		if (words.size() != 9) {
+			throw SqlSyntaxException("sql syntax error");
+		}
+		if (words[3] != "on" || words[5] != "(") {
+			throw SqlSyntaxException("sql syntax error");
+		}
+		if (words[2].length() > Global::MAX_IDNEX_NAME) {
+			throw IndexCreateException("the index name is to long");
+		}
 
+		cout << "create index" << endl;
+		cout << words[2] << " " << words[4] << " " << words[6] << endl;
+		//DBMS::createIndex(const string indexName, const string tableName, const string attrName)
+
+		DBMS::getDBMSInst()->createIndex(words[2], words[4], words[6]);
 	} else {
 		throw SqlSyntaxException("sql syntax error");
 	}

@@ -71,7 +71,7 @@ public:
 	void addFloatIndex(string key, Bplustree<float, unsigned long int> * value);
 	void addDoubleIndex(string key, Bplustree<double, unsigned long int> * value);
 
-	void addIndex(string key, string indexName);
+	bool addIndex(string key, string indexName);
 public:
 	BPlusTree<string, unsigned long int> * getStringIndex(const string tableName, const string colName);
 
@@ -110,7 +110,8 @@ public:
 	int getTypeValue(int index) const;
 	void addAttribute(const char * attr);
 	string getAttribute(int index);
-	unsigned int getAttributeIndex(char * attr);
+	bool hasAttribute(const string attr);
+	unsigned int getAttributeIndex(const char * attr);
 
 	
 	void setRelationName(char * relName);

@@ -208,8 +208,10 @@ void Dictionary::addDoubleIndex(string key, Bplustree<double, unsigned long int>
 	doubleIndex.insert(pair<string, Bplustree<double, unsigned long int> *>(key, value));
 }
 
-void Dictionary::addIndex(string key, string indexName) {
-	indexs.insert(pair<string, string>(key, indexName));
+bool Dictionary::addIndex(string key, string indexName) {
+	pair<map<string, string>::iterator, bool> ret;
+	ret = indexs.insert(pair<string, string>(key, indexName));
+	return ret.second;
 }
 
 BPlusTree<string, unsigned long int> * Dictionary::getStringIndex(const string tableName, const string colName) {
@@ -342,7 +344,16 @@ void Relation::addAttribute(const char * attrName) {
 string Relation::getAttribute(int index) {
 	return attribute.at(index);
 }
-unsigned int Relation::getAttributeIndex(char * attr) {
+
+bool Relation::hasAttribute(const string attr) {
+	for (unsigned int i = 0; i < attribute.size(); i++) {
+		if (attr == attribute[i]) {
+			return true;
+		}
+	}
+	return false;
+}
+unsigned int Relation::getAttributeIndex(const char * attr) {
 	string temp(attr);
 	for (unsigned int i = 0; i < attribute.size(); i++) {
 		if (temp == attribute.at(i)){
