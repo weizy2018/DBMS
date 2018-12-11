@@ -198,6 +198,15 @@ void Dictionary::writeBack() {
 void Dictionary::addStringIndex(string key, BPlusTree<string, unsigned long int> * value) {
 	stringIndex.insert(pair<string, BPlusTree<string, unsigned long int> *>(key, value));
 }
+void Dictionary::addIntIndex(string key, Bplustree<int, unsigned long int> * value) {
+	intIndex.insert(pair<string, Bplustree<int, unsigned long int> *>(key, value));
+}
+void Dictionary::addFloatIndex(string key, Bplustree<float, unsigned long int> * value) {
+	floatIndex.insert(pair<string, Bplustree<float, unsigned long int> *>(key, value));
+}
+void Dictionary::addDoubleIndex(string key, Bplustree<double, unsigned long int> * value) {
+	doubleIndex.insert(pair<string, Bplustree<double, unsigned long int> *>(key, value));
+}
 
 void Dictionary::addIndex(string key, string indexName) {
 	indexs.insert(pair<string, string>(key, indexName));
@@ -209,6 +218,46 @@ BPlusTree<string, unsigned long int> * Dictionary::getStringIndex(const string t
 	key.append("$");
 	key.append(colName);
 	for (auto it = stringIndex.begin(); it != stringIndex.end(); it++) {
+		if (it->first == key) {
+			tree = it->second;
+			break;
+		}
+	}
+	return tree;
+}
+
+Bplustree<int, unsigned long int> * Dictionary::getIntIndex(const string tableName, const string colName) {
+	Bplustree<int, unsigned long int> * tree = nullptr;
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
+		if (it->first == key) {
+			tree = it->second;
+			break;
+		}
+	}
+	return tree;
+}
+Bplustree<float, unsigned long int> * Dictionary::getFloatIndex(const string tableName, const string colName) {
+	Bplustree<float, unsigned long int> * tree = nullptr;
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
+		if (it->first == key) {
+			tree = it->second;
+			break;
+		}
+	}
+	return tree;
+}
+Bplustree<double, unsigned long int> * Dictionary::getDoubleIndex(const string tableName, const string colName) {
+	Bplustree<double, unsigned long int> * tree = nullptr;
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
 		if (it->first == key) {
 			tree = it->second;
 			break;

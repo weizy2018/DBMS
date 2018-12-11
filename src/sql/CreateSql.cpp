@@ -94,11 +94,11 @@ void CreateSql::execute() {
 				} else if (words[i] == INT || words[i] == FLOAT || words[i] == DOUBLE) {
 					int value;
 					if (words[i] == INT) {
-						value = 12;
+						value = sizeof(int);
 					} else if (words[i] == FLOAT) {
-						value = 18;
+						value = sizeof(float);
 					} else if (words[i] == DOUBLE) {
-						value = 28;
+						value = sizeof(double);
 					}
 					strcpy(type, words[i].c_str());
 					pair<set<string>::iterator, bool> ret;
@@ -118,11 +118,10 @@ void CreateSql::execute() {
 			}
 		}
 		DBMS::getDBMSInst()->createTable(relName, attrs);
-		//create table tb(name varchar(20),id char(20),age int,gender char(10));
-		//create table mydb(cat_name varchar(20),dog_name varchar(20),cat_age int,dog_age int);
-
 	} else if (words[1] == INDEX) {
 		cout << "create index" << endl;
+		//create index student_name on student(name);
+
 
 	} else {
 		throw SqlSyntaxException("sql syntax error");

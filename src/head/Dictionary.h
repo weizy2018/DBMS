@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 #include "../tools/head/BPlusTree.h"
+#include "../tools/head/Bplustree.h"
 #include "Block.h"
 
 using namespace std;
@@ -65,9 +66,18 @@ public:
 	void writeBack();		//对字典更新后写回文件
 public:
 	void addStringIndex(string key, BPlusTree<string, unsigned long int> * value);
+
+	void addIntIndex(string key, Bplustree<int, unsigned long int> * value);
+	void addFloatIndex(string key, Bplustree<float, unsigned long int> * value);
+	void addDoubleIndex(string key, Bplustree<double, unsigned long int> * value);
+
 	void addIndex(string key, string indexName);
 public:
 	BPlusTree<string, unsigned long int> * getStringIndex(const string tableName, const string colName);
+
+	Bplustree<int, unsigned long int> * getIntIndex(const string tableName, const string colName);
+	Bplustree<float, unsigned long int> * getFloatIndex(const string tableName, const string colName);
+	Bplustree<double, unsigned long int> * getDoubleIndex(const string tableName, const string colName);
 
 private:
     vector<Relation*> relations;
@@ -75,6 +85,10 @@ private:
 
     //索引  string = tableName + "$" + colName
     map<string, BPlusTree<string, unsigned long int> *> stringIndex;
+
+    map<string, Bplustree<int, unsigned long int> *> intIndex;
+    map<string, Bplustree<float, unsigned long int> *> floatIndex;
+    map<string, Bplustree<double, unsigned long int> *> doubleIndex;
 
     //index <tableName + "$" + colName, indexName>
     map<string, string> indexs;

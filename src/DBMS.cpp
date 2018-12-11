@@ -172,9 +172,31 @@ void DBMS::initialDictionary(const char * dicName) {
     	int valueLen    = sizeof(unsigned long int);
 
     	//初始化相应的索引
-    	BPlusTree<string, unsigned long int> * tree;
-    	tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
-    	Dictionary::getDictionary()->addStringIndex(key, tree);
+    	if (rel->getTypeName(attrIndex) == Global::INTEGER) {
+    	    Bplustree<int, unsigned long int>* tree;
+    	    tree = new Bplustree<int, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    Dictionary::getDictionary()->addIntIndex(key, tree);
+
+    	} else if (rel->getTypeName(attrIndex) == Global::FLOAT) {
+    		Bplustree<float, unsigned long int> * tree;
+    	    tree = new Bplustree<float, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    Dictionary::getDictionary()->addFloatIndex(key, tree);
+
+    	} else if (rel->getTypeName(attrIndex) == Global::DOUBLE) {
+    		Bplustree<double, unsigned long int> * tree;
+    	    tree = new Bplustree<double, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    Dictionary::getDictionary()->addDoubleIndex(key, tree);
+
+    	} else if (rel->getTypeName(attrIndex) == Global::CHAR) {
+    	    BPlusTree<string, unsigned long int> * tree;
+    	    tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    Dictionary::getDictionary()->addStringIndex(key, tree);
+
+    	} else if (rel->getTypeName(attrIndex) == Global::VARCHAR) {
+    	    BPlusTree<string, unsigned long int> * tree;
+    	    tree = new BPlusTree<string, unsigned long int>(indexFileName.c_str(), indexKeyLen, valueLen, false);
+    	    Dictionary::getDictionary()->addStringIndex(key, tree);
+    	}
     }
     fclose(dicFile);
     
@@ -431,10 +453,28 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 	//如果创建了索引，需要在索引中添加相应的内容
 	for (int i = 0; i < rel->getTotalProperty(); i++) {
 		string attr = rel->getAttribute(i);
-		BPlusTree<string, unsigned long int> * tree = Dictionary::getDictionary()->getStringIndex(tableName, attr);
-		if (tree != nullptr) {
-			tree->put(values.at(i), indexValue);
+		if (rel->getTypeName(i) == Global::INTEGER) {
+			Bplustree<int, unsigned long int> * tree = Dictionary::getDictionary()->getIntIndex(tableName, attr);
+			if (tree != nullptr) {
+				tree->put(stoi(values.at(i)), indexValue);
+			}
+		} else if (rel->getTypeName(i) == Global::FLOAT) {
+			Bplustree<float, unsigned long int> * tree = Dictionary::getDictionary()->getFloatIndex(tableName, attr);
+			if (tree != nullptr) {
+				tree->put(stof(values.at(i)), indexValue);
+			}
+		} else if (rel->getTypeName(i) == Global::DOUBLE) {
+			Bplustree<double, unsigned long int> * tree = Dictionary::getDictionary()->getDoubleIndex(tableName, attr);
+			if (tree != nullptr) {
+				tree->put(stod(values.at(i)), indexValue);
+			}
+		} else {		//char varchar
+			BPlusTree<string, unsigned long int> * tree = Dictionary::getDictionary()->getStringIndex(tableName, attr);
+			if (tree != nullptr) {
+				tree->put(values.at(i), indexValue);
+			}
 		}
+
 	}
 	cout << "insert OK" << endl;
 	Dictionary::getDictionary()->setChange(true);
