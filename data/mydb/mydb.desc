@@ -1,8 +1,8 @@
 1
-0
+2
 4
 
-0
+1
 5
 student
 student.rel
@@ -14,3 +14,5 @@ float 4
 double 8
 
 
+student gender gender_index
+student name name_index

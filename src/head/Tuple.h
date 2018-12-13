@@ -43,6 +43,8 @@ public:
 	char * getResult();						//返回转换结果
 	unsigned int getTupLength();
 	void printTuple();						//打印该元组
+public:
+	const BasicType * getTupleBasicType(unsigned int index);
 private:
 	char * generateRowId();
 	void calTupleLen();

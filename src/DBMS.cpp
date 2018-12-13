@@ -352,7 +352,7 @@ void DBMS::createIndex(const string indexName, const string tableName, const str
 
 	if (!Dictionary::getDictionary()->addIndex(key, indName)) {
 		string error("The column \'" + attrName);
-		error.append("has exist an index");
+		error.append("\' has exist an index");
 		throw IndexCreateException(error);
 	}
 
@@ -375,20 +375,34 @@ void DBMS::createIndex(const string indexName, const string tableName, const str
 	if (type == Global::INTEGER) {
 		Bplustree<int, unsigned long int> * tree =
 				new Bplustree<int, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Relation * rel = Dictionary::getDictionary()->getRelation(tableName.c_str());
+		rel->initIntBplustree(attrIndex, tree);					//如果关系表中已经有数据了，需要将对应的数据放入新建的b+树中 int
+
 		Dictionary::getDictionary()->addIntIndex(key, tree);
 	} else if (type == Global::FLOAT) {
 		Bplustree<float, unsigned long int>  * tree =
 				new Bplustree<float, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Relation * rel = Dictionary::getDictionary()->getRelation(tableName.c_str());
+		rel->initFloatBplustree(attrIndex, tree);				//如果关系表中已经有数据了，需要将对应的数据放入新建的b+树中 float
+
 		Dictionary::getDictionary()->addFloatIndex(key, tree);
 	} else if (type == Global::DOUBLE) {
 		Bplustree<double, unsigned long int> * tree =
 				new Bplustree<double, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Relation * rel = Dictionary::getDictionary()->getRelation(tableName.c_str());
+		rel->initDoubleBplustree(attrIndex, tree);				//如果关系表中已经有数据了，需要将对应的数据放入新建的b+树中 double
+
 		Dictionary::getDictionary()->addDoubleIndex(key, tree);
 	} else {
 		BPlusTree<string, unsigned long int> * tree =
 				new BPlusTree<string, unsigned long int>(path.c_str(), indexKeyLen, valueLen, true);
+		Relation * rel = Dictionary::getDictionary()->getRelation(tableName.c_str());
+		rel->initStringBplustree(attrIndex, tree);				//如果关系表中已经有数据了，需要将对应的数据放入新建的b+树中 string
+
 		Dictionary::getDictionary()->addStringIndex(key, tree);
 	}
+	Dictionary::getDictionary()->writeBack();
+
 	cout << "index create success" << endl;
 }
 /*
@@ -466,9 +480,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 			}
 		}
 	}
-	tup->processData();		//一定要有
-//	cout << "tup data :" << endl;
-//	tup->printTuple();
+	tup->processData();		//一定要有,一定要有，一定要有
 
 	//add to block
 	//获取关系表中的最后一块，看该块是否满了，如果没满则在这个块中插入数据，否则新建一块
@@ -547,7 +559,6 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 				tree->put(values.at(i), indexValue);
 			}
 		}
-
 	}
 	cout << "insert OK" << endl;
 	Dictionary::getDictionary()->setChange(true);
@@ -579,6 +590,8 @@ void DBMS::changeDatabase(const char * databaseName) {
 		error.append(databaseName);
 		error.append("\'");
 		throw DatabaseException(error);
+	} else if (strcmp(currentDatabase.c_str(), databaseName) == 0) {
+		return;
 	}
 	if (lru) {
 		delete lru;

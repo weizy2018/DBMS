@@ -15,6 +15,7 @@
 #define BLOCK_H
 #include<vector>
 #include "Dictionary.h"
+#include "Tuple.h"
 
 
 using namespace std;
@@ -78,6 +79,9 @@ private:
     void addPosition(Position * position);				//向块头中添加一组元组的信息
 
     void parsedBlock();									//解析char * block
+public:
+    block_id getBlockId();
+    vector<Tuple *> getBlockTupls();
 public:
     void printBlock();              					//用于输出元组的内容
     int getFreespace();									//获取该块中剩余的空闲空间

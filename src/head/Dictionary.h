@@ -125,6 +125,11 @@ public:
 	void printRelationData();
 	void printRelation();
 public:
+	void initIntBplustree(unsigned int attrIndex, Bplustree<int, unsigned long int> *);
+	void initFloatBplustree(unsigned int attrIndex, Bplustree<float, unsigned long int>  *);
+	void initDoubleBplustree(unsigned int attrIndex, Bplustree<double, unsigned long int> *);
+	void initStringBplustree(unsigned int attrIndex, BPlusTree<string, unsigned long int> *);
+public:
 	Block * getBlock(const string databaseName, unsigned int blockId);
 
 private:

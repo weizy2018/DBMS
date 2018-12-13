@@ -292,6 +292,10 @@ void Tuple::printTuple() {
 	printf("\n");
 }
 
+const BasicType * Tuple::getTupleBasicType(unsigned int index) {
+	return basicData.at(index);
+}
+
 //-------------------------------
 //TupPosition
 //-------------------------------

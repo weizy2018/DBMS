@@ -15,6 +15,7 @@
 #include "exception/head/FileNotFoundException.h"
 #include "head/Global.h"
 #include "head/DBMS.h"
+#include "basic/head/BasicType.h"
 
 #include <stdlib.h>
 #include <vector>
@@ -318,6 +319,95 @@ void Relation::printRelationData() {
 		block->printBlock();
 	}
 }
+/*
+ * attrIndex: 元组中的第几个元素, 这里对应的该元素一定是int类型的
+ */
+void Relation::initIntBplustree(unsigned int attrIndex, Bplustree<int, unsigned long int> * tree) {
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(relationName, i);
+		if (block == nullptr) {
+			block = this->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(relationName, i, block);
+		}
+		unsigned int blockId = block->getBlockId();
+		vector<Tuple *> tuples = block->getBlockTupls();
+		while (!tuples.empty()) {
+			Tuple * tup = tuples.back();
+			tuples.pop_back();
+			BasicType * basic = tup->getTupleBasicType(attrIndex);
+			int * data = (int*)basic->getData();
+			tree->put(*data, blockId);
+			delete tup;
+		}
+
+	}
+}
+/**
+ * attrIndex: 元组对应的第几个元素，这里对应的元素一定是float类型的
+ */
+void Relation::initFloatBplustree(unsigned int attrIndex, Bplustree<float, unsigned long int>  * tree) {
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(relationName, i);
+		if (block == nullptr) {
+			block = this->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(relationName, i, block);
+		}
+		unsigned int blockId = block->getBlockId();
+		vector<Tuple *> tuples = block->getBlockTupls();
+		while (!tuples.empty()) {
+			Tuple * tup = tuples.back();
+			tuples.pop_back();
+			BasicType * basic = tup->getTupleBasicType(attrIndex);
+			float * data = (float*)basic->getData();
+			tree->put(*data, blockId);
+		}
+	}
+}
+/**
+ * attrIndex: 元组对应的第几个元素，这里对应的元素一定是double类型的
+ */
+void Relation::initDoubleBplustree(unsigned int attrIndex, Bplustree<double, unsigned long int> * tree) {
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(relationName, i);
+		if (block == nullptr) {
+			block = this->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(relationName, i, block);
+		}
+		unsigned int blockId = block->getBlockId();
+		vector<Tuple *> tuples = block->getBlockTupls();
+		while (!tuples.empty()) {
+			Tuple * tup = tuples.back();
+			tuples.pop_back();
+			BasicType * basic = tup->getTupleBasicType(attrIndex);
+			double * data = (double*)basic->getData();
+			tree->put(*data, blockId);
+		}
+	}
+}
+/**
+ * attrIndex: 元组对应的第几个元素，这里对应的元素一定是char *类型的
+ */
+void Relation::initStringBplustree(unsigned int attrIndex, BPlusTree<string, unsigned long int> * tree) {
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(relationName, i);
+		if (block == nullptr) {
+			block = this->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(relationName, i, block);
+		}
+		unsigned int blockId = block->getBlockId();
+		vector<Tuple *> tuples = block->getBlockTupls();
+		while (!tuples.empty()) {
+			Tuple * tup = tuples.back();
+			tuples.pop_back();
+			BasicType * basic = tup->getTupleBasicType(attrIndex);
+			char * data = basic->getData();
+			string key(data);
+			tree->put(key, blockId);
+		}
+	}
+}
+
+
 void Relation::setRelationName(char * relName){
 	relationName = relName;
 }

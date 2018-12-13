@@ -33,6 +33,8 @@ public:
 	
 	const static int TYPE_LENGTH 			= 11;	 	//属性的类型名称长度
 
+	const static int INDEX_FILE_PATH_LENGTH = 100;
+
 protected:
 
 private:

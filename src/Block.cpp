@@ -258,6 +258,24 @@ void Block::printBlock(){
 	}
 }
 
+vector<Tuple *> Block::getBlockTupls() {
+	vector<Tuple *> tupls;
+	for (int i = 0; i < tups; i++) {
+		position_start start = pos.at(i)->getStart();
+		offset_length len = pos.at(i)->getLength();
+		char * b = (char*)malloc(len);
+		for (int i = 0; i < len; i++){
+			b[i] = block[start++];
+		}
+		Tuple * tuple = new Tuple(b, relation);
+		tupls.push_back(tuple);
+	}
+	return tupls;
+}
+block_id Block::getBlockId() {
+	return this->blockId;
+}
+
 
 
 

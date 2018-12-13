@@ -125,7 +125,7 @@ void CreateSql::execute() {
 		}
 		DBMS::getDBMSInst()->createTable(relName, attrs);
 	} else if (words[1] == INDEX) {
-		cout << "create index" << endl;
+//		cout << "create index" << endl;
 		//create index student_name on student(name);
 //		char indexName[Global::MAX_IDNEX_NAME];
 //		char tableName[Global::MAX_RELATION_NAME];
@@ -141,8 +141,8 @@ void CreateSql::execute() {
 			throw IndexCreateException("the index name is to long");
 		}
 
-		cout << "create index" << endl;
-		cout << words[2] << " " << words[4] << " " << words[6] << endl;
+//		cout << "create index" << endl;
+//		cout << words[2] << " " << words[4] << " " << words[6] << endl;
 		//DBMS::createIndex(const string indexName, const string tableName, const string attrName)
 
 		DBMS::getDBMSInst()->createIndex(words[2], words[4], words[6]);

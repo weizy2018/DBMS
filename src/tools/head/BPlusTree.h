@@ -16,9 +16,9 @@
 #include <typeinfo>
 #include "BPlusTree.h"
 #include "../../exception/head/KeyNotFoundException.h"
-//#include "LRUCacheIndex.h"
 #include "lru.h"
 #include "../../exception/head/FileNotFoundException.h"
+#include "../../head/Global.h"
 
 #define CACHE_SIZE 10
 
@@ -28,6 +28,7 @@ using namespace std;
 #define TREE_NODE_HEAD_SIZE		16
 #define TREE_NODE_DATA_SIZE 	(1024-16)		//(4*1024-16)
 #define OFFSET_LENGTH			(2*sizeof(unsigned long int))
+
 
 template<typename key, typename value>
 class TreeNode;
@@ -64,7 +65,7 @@ private:
 	TreeNode<key, value> * getLastTreeNode(unsigned long int totalBlock);
 	TreeNode<key, value> * getTreeNode(unsigned long int self);
 private:
-	const char * indexFileName;
+	char * indexFileName;
 	int keyLen;
 	int valueLen;
 	int treeNodeMaxSize;			//结点所能存放数据的做大值
@@ -157,12 +158,13 @@ public:
 //============================================
 template<typename key, typename value>
 BPlusTree<key, value>::BPlusTree(const char * indexFileName, int keyLen, int valueLen, bool create) {
-	this->indexFileName = indexFileName;
+	this->indexFileName = (char*)malloc(Global::INDEX_FILE_PATH_LENGTH);
+	strcpy(this->indexFileName, indexFileName);
 	this->keyLen = keyLen;
 	this->valueLen = valueLen;
 	head = (char*)malloc(sizeof(totalBlock) + sizeof(root));
 	treeNodeMaxSize = (TREE_NODE_DATA_SIZE - valueLen)/(keyLen + valueLen);
-	cout << "BPlusTree::BPlusTree() treeNodeMaxSize = " << treeNodeMaxSize << endl;
+//	cout << "BPlusTree::BPlusTree() treeNodeMaxSize = " << treeNodeMaxSize << endl;
 
 	lruCache = new LruCache<unsigned long int, TreeNode<key, value>*>(CACHE_SIZE);
 
@@ -190,6 +192,7 @@ BPlusTree<key, value>::~BPlusTree() {
 	delete rootNode;
 //	LRUCacheIndex<key, value>::releaseLruInst();
 	delete lruCache;
+	free(indexFileName);
 }
 
 template<typename key, typename value>

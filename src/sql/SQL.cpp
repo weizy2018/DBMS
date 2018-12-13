@@ -15,6 +15,8 @@
 #include "../exception/head/TableCreateException.h"
 #include "../exception/head/QueryException.h"
 #include "../exception/head/IndexCreateException.h"
+#include "../exception/head/InsertDataException.h"
+#include "../exception/head/FileNotFoundException.h"
 
 #include "head/CreateSql.h"
 #include "head/ExecuteStatus.h"
@@ -186,6 +188,10 @@ void SQL::execute() {
 		} catch (QueryException & e) {
 			e.what();
 		} catch (IndexCreateException & e) {
+			e.what();
+		} catch (InsertDataException & e) {
+			e.what();
+		} catch (FileNotFoundException & e) {
 			e.what();
 		}
 

@@ -26,7 +26,7 @@ public:
 		_max_size(max_size) {
 	}
 	~LruCache() {
-		cout << "~LruCache()" << endl;
+//		cout << "~LruCache()" << endl;
 		while(!_cache_items_list.empty()) {
 			key_value_pair_t fro = _cache_items_list.front();
 			_cache_items_list.pop_front();
@@ -35,7 +35,7 @@ public:
 	}
 
 	value_t put(const key_t& key, const value_t& value) {
-		cout << "LruCache::put()" << endl;
+//		cout << "LruCache::put()" << endl;
 		value_t v = 0;
 		auto it = _cache_items_map.find(key);
 		_cache_items_list.push_front(key_value_pair_t(key, value));
