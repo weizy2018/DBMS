@@ -51,6 +51,8 @@ public:
 	void insert(const char * tableName, vector<string> values);
 	void select(const vector<string> tableNames, vector<string> condition);
 	void changeDatabase(const char * databaseName);
+	void showDatabases();
+	void showTables();
 public:
 	Block * getBlock(const string relationName, unsigned int blockId);	//从lru中获取块，失败返回nullptr
 	Block * getBlock(const string key);

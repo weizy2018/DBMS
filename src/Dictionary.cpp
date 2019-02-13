@@ -123,7 +123,9 @@ Relation * Dictionary::getRelation(const char * relationName) {
 	}
 	return r;
 }
-
+int Dictionary::getTotalRelation() {
+	return relations.size();
+}
 
 void Dictionary::printDictionary(){
 	for (vector<Relation *>::iterator it = relations.begin(); it != relations.end(); it++){
@@ -294,6 +296,7 @@ int Relation::getTypeName(int index) const{
 int Relation::getTypeValue(int index) const{
 	return type.at(index).second;
 }
+
 void Relation::printRelation(){
 	printf("relation name : %s\n", relationName);
 	printf("relation file name : %s\n", relationFileName);

@@ -10,12 +10,13 @@
 
 #include <vector>
 
-#include "Dictionary.h"
+//#include "Dictionary.h"
 #include "../basic/head/BasicType.h"
 
 using namespace std;
 
 class TupPosition;
+class Relation;
 
 class Tuple {
 public:
@@ -44,7 +45,7 @@ public:
 	unsigned int getTupLength();
 	void printTuple();						//打印该元组
 public:
-	const BasicType * getTupleBasicType(unsigned int index);
+	BasicType * getTupleBasicType(unsigned int index);
 private:
 	char * generateRowId();
 	void calTupleLen();

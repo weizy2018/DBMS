@@ -50,6 +50,8 @@ public:
     void addRelation(Relation * rel);
     Relation * getRelation(int index);
     Relation * getRelation(const char * relationname);
+    int getTotalRelation();
+
     void setCurDatabaseName(const char * curDBName);
 	const char * getCurDatabaseName() const;
 
@@ -108,6 +110,7 @@ public:
 	int getTotalProperty() const;
 	int getTypeName(int index) const;
 	int getTypeValue(int index) const;
+
 	void addAttribute(const char * attr);
 	string getAttribute(int index);
 	bool hasAttribute(const string attr);

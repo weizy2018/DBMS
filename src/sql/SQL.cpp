@@ -23,6 +23,7 @@
 #include "head/InsertSql.h"
 #include "head/UseSql.h"
 #include "head/SelectSql.h"
+#include "head/ShowSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -47,6 +48,7 @@ SQL * SQL::getsqlInst() {
 }
 void SQL::releaseInst() {
 	delete sqlInst;
+	sqlInst = nullptr;
 }
 
 void SQL::inputSql() {
@@ -159,6 +161,7 @@ void SQL::execute() {
 
 	} else if (words[0] == SHOW) {
 		cout << "show" << endl;
+		executeStatus = new ShowSql(words);
 
 	} else if (words[0] == DESC) {
 		cout << "desc" << endl;

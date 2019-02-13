@@ -13,6 +13,7 @@ using namespace std;
 #include "head/Tuple.h"
 #include "head/Global.h"
 #include "tools/head/tools.h"
+#include "head/Dictionary.h"
 
 Tuple::Tuple(const Relation * rel):relationDic(rel) {
 	tupleData = nullptr;
@@ -71,7 +72,9 @@ void Tuple::calTupleLen() {
 	unsigned fixed = 0;
 	//统计边长类型的个数
 	int varCount = 0;
-	const int totalProperty = relationDic->getTotalProperty();
+
+	int totalProperty = relationDic->getTotalProperty();
+
 	for (int i = 0; i < totalProperty; i++) {
 		if (relationDic->getTypeName(i) == Global::VARCHAR) {
 			varCount++;
@@ -292,7 +295,7 @@ void Tuple::printTuple() {
 	printf("\n");
 }
 
-const BasicType * Tuple::getTupleBasicType(unsigned int index) {
+BasicType * Tuple::getTupleBasicType(unsigned int index) {
 	return basicData.at(index);
 }
 

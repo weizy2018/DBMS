@@ -1,4 +1,4 @@
-1
+2
 2
 4
 
@@ -12,6 +12,14 @@ char 5
 int 4
 float 4
 double 8
+
+0
+2
+teacher
+teacher.rel
+name id 
+varchar 20
+char 10
 
 
 student gender gender_index

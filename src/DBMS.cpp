@@ -675,6 +675,33 @@ void DBMS::putBlock(string key, Block * value) {
 	}
 }
 
+void DBMS::showDatabases() {
+	cout << "+-------------------+" << endl;
+	cout << "|  Database         |" << endl;
+	cout << "+-------------------+" << endl;
+
+	for (auto it = databases.begin(); it != databases.end(); it++) {
+		cout << "  " << *it << endl;
+	}
+	cout << "+-------------------+" << endl;
+}
+void DBMS::showTables() {
+	if (currentDatabase == "") {
+		cout << "ERROR: No databases selected" << endl;
+		return;
+	}
+	cout << "+-------------------------+" << endl;
+	cout << "  tables in " << currentDatabase << endl;
+	cout << "+-------------------------+" << endl;
+	int totalRelation = Dictionary::getDictionary()->getTotalRelation();
+	for (int i = 0; i < totalRelation; i++) {
+		Relation * rel = Dictionary::getDictionary()->getRelation(i);
+		cout << "  " << rel->getRelationName() << endl;
+	}
+	cout << "+-------------------------+" << endl;
+
+}
+
 
 void DBMS::test() {
 	FILE * testFile;
