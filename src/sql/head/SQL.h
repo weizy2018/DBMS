@@ -12,7 +12,7 @@
 #include <vector>
 #include "../../head/DBMS.h"
 
-#define SYMBOL_SIZE 10
+#define SYMBOL_SIZE 11
 
 #define CREATE 		"create"
 #define SELECT 		"select"

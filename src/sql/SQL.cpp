@@ -29,7 +29,7 @@ SQL * SQL::sqlInst = nullptr;
 
 SQL::SQL() {
 	// TODO Auto-generated constructor stub
-	char sym[] = {'*', '=', ',', '\'', '\"', '(', ')', ';', '>', '<'};
+	char sym[] = {'*', '=', ',', '\'', '\"', '(', ')', ';', '>', '<', '.'};
 	for (int i = 0; i < SYMBOL_SIZE; i++) {
 		symbol[i] = sym[i];
 	}
@@ -172,7 +172,7 @@ void SQL::execute() {
 		finish = true;
 	} else if (words[0] == DROP) {
 		cout << "drop" << endl;
-	} else if (words[0] == STATUS) {
+	} else if (words[0] == STATUS) {		//用select database()代替
 		cout << "status" << endl;
 	} else {
 		throw SqlSyntaxException("the word \'" + words[0] + "\' is undefined");
