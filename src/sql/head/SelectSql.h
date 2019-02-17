@@ -27,9 +27,12 @@ private:
 
 	vector<string> tableNames;
 	vector<Condition *> conditions;
+	vector<string> join;			//连接conditions的连接词(and, or)
 private:
 	void handleTables();
 	void handleConditions();
+	void checkTable();			//检查from中的table是否在当前数据库中
+	void checkWhere();			//检查where中的column是否在对应的关系表中
 };
 
 class Condition {
@@ -38,14 +41,14 @@ public:
 	string column1;
 	string table2;
 	string column2;
-	string cond;
+	string symbol;
 public:
-	Condition(string tab1, string col1, string tab2, string col2, string cond) {
+	Condition(string tab1, string col1, string tab2, string col2, string sym) {
 		this->table1 = tab1;
 		this->column1 = col1;
 		this->table2 = tab2;
 		this->column2 = col2;
-		this->cond = cond;
+		this->symbol = sym;
 	}
 };
 
