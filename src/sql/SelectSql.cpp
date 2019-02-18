@@ -6,10 +6,13 @@
  */
 
 #include "head/SelectSql.h"
-#include "../exception/head/SqlSyntaxException.h"
+
 #include "../head/Global.h"
 #include "../head/DBMS.h"
 #include "../head/Dictionary.h"
+
+#include "../exception/head/SqlSyntaxException.h"
+#include "../exception/head/Error.h"
 
 #include <string.h>
 
@@ -32,11 +35,24 @@ SelectSql::~SelectSql() {
 //mysql> select * from abc, def;
 //ERROR 1146 (42S02): Table 'sampdb.abc' doesn't exist
 void SelectSql::execute() {
+	if (DBMS::getDBMSInst()->getCurrentDatabase() == "") {
+		throw Error("no database selected");
+	}
 	if (words[1] != "*" || words[2] != "from") {
 		throw SqlSyntaxException("sql syntax error");
 	}
 	handleTables();
+	checkTable();
+
 	handleConditions();
+	checkCondition();
+
+	cout << "after check condition" << endl;
+	for (unsigned int i = 0; i < conditions.size(); i++) {
+		Condition * con = conditions[i];
+		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
+	}
+
 
 //	char tableName[Global::MAX_RELATION_NAME];
 //	strcpy(tableName, words[3].c_str());
@@ -80,8 +96,6 @@ void SelectSql::handleTables() {
 		cout << *it << "  ";
 	}
 	cout << endl;
-
-//	checkTable();
 }
 //select * from table1, table2 where table1.id = table2.id and age > 35;
 void SelectSql::handleConditions() {
@@ -157,27 +171,95 @@ void SelectSql::handleConditions() {
 		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
 	}
 }
-//Table 'sampdb.abc' doesn't exist
 //检查from的table是否在currentDatabase中
 void SelectSql::checkTable() {
-	int totalRelation = Dictionary::getDictionary()->getTotalRelation();
-	int j;
 	const string currentDatabase = DBMS::getDBMSInst()->getCurrentDatabase();
 	for (unsigned int i = 0; i < tableNames.size(); i++) {
-		for (j = 0; j < totalRelation; j++) {
-			Relation * rel = Dictionary::getDictionary()->getRelation(j);
-			string relName(rel->getRelationName());
-			if (relName == tableNames[i]) {
-				break;
-			}
-		}
-		if (j == totalRelation) {
+		Relation * r = Dictionary::getDictionary()->getRelation(tableNames[i].c_str());
+		if (r == nullptr) {
 			string error("Table \'");
 			error.append(currentDatabase);
 			error.append(".");
 			error.append(tableNames[i]);
 			error.append("\' doesn't exist");
-			throw SqlSyntaxException(error);
+			throw Error(error);
+		}
+	}
+}
+//检查where中关系表以及对应的列是否合法
+void SelectSql::checkCondition() {
+	for (unsigned int i = 0; i < conditions.size(); i++) {
+		Condition * con = conditions[i];
+
+		//table1.column1
+		if (con->table1 == "") {
+			//从from的关系表中找到该列所在的关系表
+			bool flag = false;
+			Relation * r;
+			for (unsigned int j = 0; j < tableNames.size(); j++) {
+				r = Dictionary::getDictionary()->getRelation(tableNames[j].c_str());
+				if (r->hasAttribute(con->column1)) {
+					flag = true;
+					break;
+				}
+			}
+			//Unknown column 'student_name' in 'where clause'
+			if (!flag) {
+				string error("Unknown column \'");
+				error.append(con->column1);
+				error.append("\' in \'where clause\'");
+				throw Error(error);
+			} else {
+				con->table1 = r->getRelationName();
+			}
+		} else {
+			//需判断table1是否在tableNames中
+			bool flag = false;
+			for (unsigned int j = 0; j < tableNames.size(); j++) {
+				if (con->table1 == tableNames.at(j)) {
+					flag = true;
+					break;
+				}
+			}
+			if (!flag) {
+				string error("Unknown column \'");
+				error.append(con->table1);
+				error.append(".");
+				error.append(con->column1);
+				error.append("\' in \'where clause\'");
+				throw Error(error);
+			}
+			//检查是否有对应的column
+			Relation * rel = Dictionary::getDictionary()->getRelation(con->table1.c_str());
+			if (!(rel->hasAttribute(con->column1))) {
+				string error("Unknown column \'");
+				error.append(con->table1);
+				error.append(".");
+				error.append(con->column1);
+				error.append("\' in \'where clause\'");
+				throw Error(error);
+			}
+		}
+
+		//table2.column2 / value
+		if (con->table2 == "") {
+			//do nothing
+		} else {
+			bool flag = false;
+			for (unsigned int j = 0; j < tableNames.size(); j++) {
+				if (con->table2 == tableNames.at(j)) {
+					flag = true;
+					break;
+				}
+			}
+			if (!flag) {
+				string error("Unknown column \'");
+				error.append(con->table2);
+				error.append(".");
+				error.append(con->column2);
+				error.append("\' in \'where clause\'");
+				throw Error(error);
+			}
 		}
 	}
 }

@@ -11,7 +11,7 @@
  * Created on November 1, 2018, 7:35 PM
  */
 
-
+#include <iomanip>
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
@@ -676,29 +676,59 @@ void DBMS::putBlock(string key, Block * value) {
 }
 
 void DBMS::showDatabases() {
-	cout << "+-------------------+" << endl;
-	cout << "|  Database         |" << endl;
-	cout << "+-------------------+" << endl;
+	unsigned int maxDatabaseNameLen = 8;
+	for (auto it = databases.begin(); it != databases.end(); it++) {
+		if (strlen(*it) > maxDatabaseNameLen) {
+			maxDatabaseNameLen = strlen(*it);
+		}
+	}
+	maxDatabaseNameLen += 1;
+	cout << setfill('-') << left << setw(maxDatabaseNameLen+2) << "+";
+	cout << "+" << endl;
+	cout << "| " << setfill(' ') << left << setw(maxDatabaseNameLen) << "Database";
+	cout << "|" << endl;
+	cout << setfill('-') << left << setw(maxDatabaseNameLen+2) << "+";
+	cout << "+" << endl;
 
 	for (auto it = databases.begin(); it != databases.end(); it++) {
-		cout << "  " << *it << endl;
+		cout << "| " << setfill(' ') << left << setw(maxDatabaseNameLen) << *it;
+		cout << "|" << endl;
 	}
-	cout << "+-------------------+" << endl;
+	cout << setfill('-') << left << setw(maxDatabaseNameLen+2) << "+";
+	cout << "+" << endl;
 }
 void DBMS::showTables() {
 	if (currentDatabase == "") {
 		cout << "ERROR: No databases selected" << endl;
 		return;
 	}
-	cout << "+-------------------------+" << endl;
-	cout << "  tables in " << currentDatabase << endl;
-	cout << "+-------------------------+" << endl;
+	unsigned int maxTablesLen = 10 + currentDatabase.length();
+
 	int totalRelation = Dictionary::getDictionary()->getTotalRelation();
 	for (int i = 0; i < totalRelation; i++) {
 		Relation * rel = Dictionary::getDictionary()->getRelation(i);
-		cout << "  " << rel->getRelationName() << endl;
+		if (strlen(rel->getRelationName()) > maxTablesLen) {
+			maxTablesLen = strlen(rel->getRelationName());
+		}
 	}
-	cout << "+-------------------------+" << endl;
+	maxTablesLen += 1;
+
+	cout << setfill('-') << left << setw(maxTablesLen+2) << "+";
+	cout << "+" << endl;
+	string title = "tables in ";
+	title.append(currentDatabase);
+	cout << "| " << setfill(' ') << left << setw(maxTablesLen) << title;
+	cout << "|" << endl;
+	cout << setfill('-') << left << setw(maxTablesLen+2) << "+";
+	cout << "+" << endl;
+	for (int i = 0; i < totalRelation; i++) {
+		Relation * rel = Dictionary::getDictionary()->getRelation(i);
+		cout << "| ";
+		cout << setfill(' ') << left << setw(maxTablesLen) << rel->getRelationName();
+		cout << "|" << endl;
+	}
+	cout << setfill('-') << left << setw(maxTablesLen+2) << "+";
+	cout << "+" << endl;
 
 }
 

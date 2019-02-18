@@ -32,7 +32,7 @@ private:
 	void handleTables();
 	void handleConditions();
 	void checkTable();			//检查from中的table是否在当前数据库中
-	void checkWhere();			//检查where中的column是否在对应的关系表中
+	void checkCondition();		//检查where中的column是否在对应的关系表中
 };
 
 class Condition {

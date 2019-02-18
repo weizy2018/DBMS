@@ -24,6 +24,7 @@
 #include "head/UseSql.h"
 #include "head/SelectSql.h"
 #include "head/ShowSql.h"
+#include "head/DescSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -165,6 +166,7 @@ void SQL::execute() {
 
 	} else if (words[0] == DESC) {
 		cout << "desc" << endl;
+		executeStatus = new DescSql(words);
 
 	} else if (words[0] == EXIT) {
 		cout << "exit" << endl;

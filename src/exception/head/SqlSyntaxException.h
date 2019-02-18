@@ -13,7 +13,7 @@
 
 using namespace std;
 
-class SqlSyntaxException {
+class SqlSyntaxException : public exception {
 public:
 	SqlSyntaxException();
 	SqlSyntaxException(string messsage);
