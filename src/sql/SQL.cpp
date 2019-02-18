@@ -17,6 +17,7 @@
 #include "../exception/head/IndexCreateException.h"
 #include "../exception/head/InsertDataException.h"
 #include "../exception/head/FileNotFoundException.h"
+#include "../exception/head/Error.h"
 
 #include "head/CreateSql.h"
 #include "head/ExecuteStatus.h"
@@ -142,14 +143,12 @@ void SQL::execute() {
 		executeStatus = new CreateSql(words);
 
 	} else if (words[0] == SELECT) {
-		cout << "select" << endl;
 		executeStatus = new SelectSql(words);
 
 	} else if (words[0] == INSERT) {
 		cout << "insert" << endl;
 		executeStatus = new InsertSql(words);
-//		InsertSql * insert = new InsertSql(words);
-//		insert->execute();
+
 	} else if (words[0] == UPDATE) {
 		cout << "update" << endl;
 
@@ -157,19 +156,15 @@ void SQL::execute() {
 		cout << "delete" << endl;
 
 	} else if (words[0] == USE) {
-		cout << "use" << endl;
 		executeStatus = new UseSql(words);
 
 	} else if (words[0] == SHOW) {
-		cout << "show" << endl;
 		executeStatus = new ShowSql(words);
 
 	} else if (words[0] == DESC) {
-		cout << "desc" << endl;
 		executeStatus = new DescSql(words);
 
 	} else if (words[0] == EXIT) {
-		cout << "exit" << endl;
 		DBMS::releaseDBMSInst();
 		finish = true;
 	} else if (words[0] == DROP) {
@@ -197,6 +192,8 @@ void SQL::execute() {
 		} catch (InsertDataException & e) {
 			e.what();
 		} catch (FileNotFoundException & e) {
+			e.what();
+		} catch (Error & e) {
 			e.what();
 		}
 

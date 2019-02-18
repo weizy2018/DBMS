@@ -22,7 +22,7 @@ SqlSyntaxException::~SqlSyntaxException() {
 }
 
 const char * SqlSyntaxException::what() const throw() {
-	string str = "SqlException: ";
+	string str = "ERROR: ";
 	str += message;
 	cout << str << endl;
 	return str.c_str();
