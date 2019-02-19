@@ -112,7 +112,7 @@ void SQL::parse() {
 
 			} else {
 				i++;
-				//sym[] = {'*', '=', ',', '\'', '\"', '(', ')', ';', '>', '<'};
+				//sym[] = {'*', '=', ',', '\'', '\"', '(', ')', ';', '>', '<', '.'};
 				if (i < sql.size() && sql.at(i) == '=') {	//处理>=、<=的情况
 					word += '=';
 					i++;
@@ -124,9 +124,30 @@ void SQL::parse() {
 			continue;
 		}
 
-		while (i < sql.size() && sql.at(i) != ' ' && !isSymbol(sql.at(i))) {
-			word += sql.at(i);
-			i++;
+		while (i < sql.size() && sql.at(i) != ' ') {
+			if (isSymbol(sql.at(i))) {
+				if (sql.at(i) == '.') {
+					bool flag = false;
+					for (unsigned int k = 0; k < word.size(); k++) {
+						if (word[k] < '0' || word[k] > '9') {
+							flag = true;
+							break;
+						}
+					}
+					if (flag) {
+						break;
+					} else {
+						word += sql.at(i);
+						i++;
+					}
+				} else {
+					break;
+				}
+			} else {
+				word += sql.at(i);
+				i++;
+			}
+
 		}
 		i--;
 		words.push_back(word);
@@ -139,7 +160,6 @@ void SQL::parse() {
 void SQL::execute() {
 	ExecuteStatus * executeStatus = nullptr;
 	if (words[0] == CREATE) {
-		cout << "create" << endl;
 		executeStatus = new CreateSql(words);
 
 	} else if (words[0] == SELECT) {
@@ -167,12 +187,13 @@ void SQL::execute() {
 	} else if (words[0] == EXIT) {
 		DBMS::releaseDBMSInst();
 		finish = true;
+		cout << "Bye" << endl;
 	} else if (words[0] == DROP) {
 		cout << "drop" << endl;
 	} else if (words[0] == STATUS) {		//用select database()代替
 		cout << "status" << endl;
 	} else {
-		throw SqlSyntaxException("the word \'" + words[0] + "\' is undefined");
+		throw Error("the word \'" + words[0] + "\' is undefined");
 	}
 	if (executeStatus) {
 		try {

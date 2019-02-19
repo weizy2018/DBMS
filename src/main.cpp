@@ -16,6 +16,7 @@
 #include "tools/head/tools.h"
 #include "sql/head/SQL.h"
 #include "exception/head/SqlSyntaxException.h"
+#include "exception/head/Error.h"
 
 using namespace std;
 
@@ -52,6 +53,8 @@ void test() {
 		try {
 			sql->parse();
 			sql->execute();
+		} catch (Error & e) {
+			e.what();
 		} catch (SqlSyntaxException & e) {
 			e.what();
 		} catch (exception & e) {
@@ -60,4 +63,5 @@ void test() {
 	}
 
 	SQL::releaseInst();
+//	DBMS::releaseDBMSInst();		//在SQL.cpp中执行exit后已经执行该操作，这里不再需要
 }
