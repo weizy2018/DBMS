@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <exception>
 #include <typeinfo>
+#include <vector>
+
 #include "BPlusTree.h"
 #include "../../exception/head/KeyNotFoundException.h"
 #include "lru.h"
@@ -43,8 +45,8 @@ public:
 	void init();					//用于初始化文件中已经存在了的b+树
 	void createIndex();				//发布create index后用于初始化b+树
 	void put(key k, value v);
-	value get(key k);				//应该是unsigned long int的，但是因为找不到的时候返回-1，索引只能是有符号的整数了
-									//后期可改为抛出异常进行处理
+	vector<value> get(key k);
+
 	void remove(key k, value v);
 public:
 	void printTree();
@@ -1164,7 +1166,7 @@ TreeNode<key, value> * BPlusTree<key, value>::getLeafNode(key k) {
  * 查找关键词k在文件中的块号
  */
 template<typename key, typename value>
-value BPlusTree<key, value>::get(key k) {
+vector<value> BPlusTree<key, value>::get(key k) {
 	//rootNode 为叶节点 (即索引中只有一个节点，直接遍历该叶节点即可）
 	FILE * indexFile;
 	if ((indexFile = fopen(indexFileName, "rb")) == NULL) {
@@ -1198,13 +1200,35 @@ value BPlusTree<key, value>::get(key k) {
 	fclose(indexFile);
 	//查找关键词k是否在子节点中
 	int index = node->binarySearch(k);
-	//index == -1表示没找到，否则index表示索引值k的下标
-	if (index==-1) {
-		throw KeyNotFoundException(k);
-	} else {
-		return node->getValue(index);	//返回k对应的value，即为关键词对应关系表中的第几块
-	}
 
+	vector<value> values;
+
+	//index == -1表示没找到，否则index表示索引值k的下标
+//	if (index==-1) {
+//		throw KeyNotFoundException(k);
+//	} else {
+//
+//		return node->getValue(index);	//返回k对应的value，即为关键词对应关系表中的第几块
+//	}
+
+	if (index != -1) {
+		for (int i = index - 1; i >=0; i--) {
+			if (node->getKey(i) == k) {
+				values.push_back(node->getValue(i));
+			} else {
+				break;
+			}
+		}
+		values.push_back(node->getValue(index));
+		for (int i = index + 1; i < node->getCount(); i++) {
+			if (node->getKey(i) == k) {
+				values.push_back(node->getValue(i));
+			} else {
+				break;
+			}
+		}
+	}
+	return values;
 }
 template<typename key, typename value>
 void BPlusTree<key, value>::printTree() {

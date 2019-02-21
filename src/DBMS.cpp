@@ -60,6 +60,7 @@ DBMS * DBMS::getDBMSInst() {
 
 void DBMS::releaseDBMSInst() {
 	delete dbms;
+	dbms = nullptr;
 }
 
 

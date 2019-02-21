@@ -275,6 +275,9 @@ vector<Tuple *> Block::getBlockTupls() {
 block_id Block::getBlockId() {
 	return this->blockId;
 }
+int Block::getTups() {
+	return this->tups;
+}
 
 
 

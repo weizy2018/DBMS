@@ -10,6 +10,8 @@
 #include "../head/Global.h"
 #include "../head/DBMS.h"
 #include "../head/Dictionary.h"
+#include "../head/Block.h"
+#include "../head/Tuple.h"
 
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/Error.h"
@@ -47,11 +49,15 @@ void SelectSql::execute() {
 	handleConditions();
 	checkCondition();
 
-	cout << "after check condition" << endl;
-	for (unsigned int i = 0; i < conditions.size(); i++) {
-		Condition * con = conditions[i];
-		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
+	if (conditions.size() == 0) {
+		selectAll();
 	}
+
+//	cout << "after check condition" << endl;
+//	for (unsigned int i = 0; i < conditions.size(); i++) {
+//		Condition * con = conditions[i];
+//		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
+//	}
 
 
 //	char tableName[Global::MAX_RELATION_NAME];
@@ -260,6 +266,28 @@ void SelectSql::checkCondition() {
 				error.append("\' in \'where clause\'");
 				throw Error(error);
 			}
+		}
+	}
+}
+
+void SelectSql::selectAll() {
+	cout << "select all" << endl;
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(0).c_str());
+	unsigned int totalBlock = rel->getTotalBlock();
+	for (unsigned int i = 0; i < totalBlock; i++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), i);
+		if (block == nullptr) {
+			block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(tableNames.at(0), i, block);
+		}
+		vector<Tuple *> tuples = block->getBlockTupls();
+		for (unsigned int i = 0; i < tuples.size(); i++) {
+			Tuple * tup = tuples[i];
+			tup->printTuple();
+		}
+		//释放内存
+		for (auto it = tuples.begin(); it != tuples.end(); it++) {
+			delete (*it);
 		}
 	}
 }

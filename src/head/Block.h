@@ -87,6 +87,8 @@ public:
     int getFreespace();									//获取该块中剩余的空闲空间
     void addTuple(const char * p, int tupSize);			//向该块中添加一个元组
     void writeBack();
+public:
+    int getTups();
 };
 
 class Position {
