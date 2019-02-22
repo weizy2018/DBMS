@@ -266,7 +266,7 @@ void Tuple::printTuple() {
 	for (unsigned int i = 0; i < sizeof(ran); i++) {
 		p[i] = tupleData[index++];
 	}
-	printf("rowId : %ld %d\n", ti, ran);
+//	printf("rowId : %ld %d\n", ti, ran);
 	for (unsigned int i = 0; i < basicData.size(); i++) {
 		switch(relationDic->getTypeName(i)) {
 		case Global::INTEGER:{
@@ -292,7 +292,7 @@ void Tuple::printTuple() {
 			break;
 		}
 	}
-	printf("\n");
+//	printf("\n");
 }
 
 BasicType * Tuple::getTupleBasicType(unsigned int index) {

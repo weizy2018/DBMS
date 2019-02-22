@@ -50,7 +50,12 @@ void SelectSql::execute() {
 	checkCondition();
 
 	if (conditions.size() == 0) {
-		selectAll();
+		if (tableNames.size() == 1) {
+			selectAll();
+		} else {
+			selectAll2();
+		}
+
 	}
 
 //	cout << "after check condition" << endl;
@@ -59,20 +64,6 @@ void SelectSql::execute() {
 //		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
 //	}
 
-
-//	char tableName[Global::MAX_RELATION_NAME];
-//	strcpy(tableName, words[3].c_str());
-//
-//	string name(words[3]);
-
-
-//	tableNames.push_back(name);
-
-//	DBMS::getDBMSInst()->select(tableNames, condition);
-
-//	for (auto it = words.begin(); it != words.end(); it++) {
-//		cout << *it << endl;
-//	}
 }
 
 void SelectSql::handleTables() {
@@ -105,7 +96,6 @@ void SelectSql::handleTables() {
 }
 //select * from table1, table2 where table1.id = table2.id and age > 35;
 void SelectSql::handleConditions() {
-	cout << "handleContions()" << endl;
 	unsigned int index = 0;
 	while (index < words.size() && words[index] != "where") {
 		index++;
@@ -269,9 +259,8 @@ void SelectSql::checkCondition() {
 		}
 	}
 }
-
+//tableNames.size() == 1
 void SelectSql::selectAll() {
-	cout << "select all" << endl;
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(0).c_str());
 	unsigned int totalBlock = rel->getTotalBlock();
 	for (unsigned int i = 0; i < totalBlock; i++) {
@@ -284,11 +273,91 @@ void SelectSql::selectAll() {
 		for (unsigned int i = 0; i < tuples.size(); i++) {
 			Tuple * tup = tuples[i];
 			tup->printTuple();
+			cout << endl;
 		}
 		//释放内存
 		for (auto it = tuples.begin(); it != tuples.end(); it++) {
 			delete (*it);
 		}
+	}
+}
+//tableNames.size() == 2	最多只能支持两个表联立了
+void SelectSql::selectAll2() {
+	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+	unsigned int totalBlock1 = rel1->getTotalBlock();
+	unsigned int totalBlock2 = rel2->getTotalBlock();
+	for (unsigned int i = 0; i < totalBlock1; i++) {
+		Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+		if (block1 == nullptr) {
+			block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+		}
+		vector<Tuple *> tuples1 = block1->getBlockTupls();
+		for (unsigned int j = 0; j < totalBlock2; j++) {
+			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
+			if (block2 == nullptr) {
+				block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+				DBMS::getDBMSInst()->putBlock(tableNames[1], j, block2);
+			}
+			vector<Tuple *> tuples2 = block2->getBlockTupls();
+			for (auto it1 = tuples1.begin(); it1 != tuples1.end(); it1++) {
+				for (auto it2 = tuples2.begin(); it2 != tuples2.end(); it2++) {
+					(*it1)->printTuple();
+					(*it2)->printTuple();
+					cout << endl;
+				}
+			}
+			for (auto it = tuples2.begin(); it != tuples2.end(); it++) {
+				delete (*it);
+			}
+		}
+
+		for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+			delete (*it);
+		}
+	}
+}
+
+void SelectSql::select1() {
+
+}
+void SelectSql::select2() {
+
+}
+
+//不用了
+void SelectSql::select() {
+	vector<Relation*> relations;
+	vector<unsigned int> blockCnt;
+	vector<unsigned int> tupleCnt;
+	vector<vector<Tuple*>> tuples;
+	for (unsigned int i = 0; i < tableNames.size(); i++) {
+		Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(i).c_str());
+		blockCnt.push_back(0);
+		relations.push_back(rel);
+	}
+	while (blockCnt[0] < relations[0]->getTotalBlock()) {
+		for (unsigned int i = tableNames.size() - 1; i >= 0; i--) {
+			if (blockCnt[i] >= relations[i]->getTotalBlock()) {
+				if (i == 0) {
+					return;
+				} else {
+					blockCnt[i] = 0;
+					blockCnt[i-1]++;
+				}
+			}
+		}
+		tuples.clear();	///.......
+		for (unsigned int i = 0; i < tableNames.size(); i++) {
+			Block * block = DBMS::getDBMSInst()->getBlock(tableNames[i], blockCnt[i]);
+			if (block == nullptr) {
+				block = relations[i]->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), blockCnt[i]);
+				DBMS::getDBMSInst()->putBlock(tableNames[i], blockCnt[i], block);
+			}
+			tuples[i] = block->getBlockTupls();
+		}
+
 	}
 }
 

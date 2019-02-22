@@ -35,6 +35,12 @@ private:
 	void checkCondition();		//检查where中的column是否在对应的关系表中
 private:
 	void selectAll();
+	void selectAll2();
+
+	void select1();
+	void select2();
+
+	void select();
 };
 
 class Condition {
