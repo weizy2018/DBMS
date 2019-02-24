@@ -26,16 +26,10 @@ SelectSql::SelectSql(const vector<string> ws) : words(ws) {
 
 SelectSql::~SelectSql() {
 	// TODO Auto-generated destructor stub
+	for (auto it = conditions.begin(); it != conditions.end(); it++) {
+		delete (*it);
+	}
 }
-
-//select * from table1, table2 where name = 'weizy' and year >= 20
-//select * from table1, table2 where table1.id = table2.id;
-
-//mysql> select * from student where student.id = '123';
-//ERROR 1054 (42S22): Unknown column 'student.id' in 'where clause'
-
-//mysql> select * from abc, def;
-//ERROR 1146 (42S02): Table 'sampdb.abc' doesn't exist
 void SelectSql::execute() {
 	if (DBMS::getDBMSInst()->getCurrentDatabase() == "") {
 		throw Error("no database selected");
@@ -55,7 +49,12 @@ void SelectSql::execute() {
 		} else {
 			selectAll2();
 		}
-
+	} else {
+		if (tableNames.size() == 1) {
+			select1();
+		} else {
+			select2();
+		}
 	}
 
 //	cout << "after check condition" << endl;
@@ -89,12 +88,11 @@ void SelectSql::handleTables() {
 		throw SqlSyntaxException("sql syntax error");
 	}
 
-	for (auto it = tableNames.begin(); it != tableNames.end(); it++) {
-		cout << *it << "  ";
-	}
-	cout << endl;
+//	for (auto it = tableNames.begin(); it != tableNames.end(); it++) {
+//		cout << *it << "  ";
+//	}
+//	cout << endl;
 }
-//select * from table1, table2 where table1.id = table2.id and age > 35;
 void SelectSql::handleConditions() {
 	unsigned int index = 0;
 	while (index < words.size() && words[index] != "where") {
@@ -104,6 +102,10 @@ void SelectSql::handleConditions() {
 	if (index >= words.size()) {
 		return;
 	}
+
+	//向join中加入一个"or"
+	join.push_back("or");
+
 	while (words[index] != ";") {
 		string table1 = "";
 		string column1 = "";
@@ -162,10 +164,10 @@ void SelectSql::handleConditions() {
 			throw SqlSyntaxException("sql syntax exception");
 		}
 	}
-	for (unsigned int i = 0; i < conditions.size(); i++) {
-		Condition * con = conditions[i];
-		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
-	}
+//	for (unsigned int i = 0; i < conditions.size(); i++) {
+//		Condition * con = conditions[i];
+//		cout << con->table1 << " " << con->column1 << con->symbol << con->table2 << " " << con->column2 << endl;
+//	}
 }
 //检查from的table是否在currentDatabase中
 void SelectSql::checkTable() {
@@ -330,7 +332,7 @@ void SelectSql::selectAll2() {
 		}
 	}
 }
-//
+//条件语句中没有优先级之分(没有括号),同意从左到右依次运算
 //单表查询
 void SelectSql::select1() {
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
@@ -344,8 +346,25 @@ void SelectSql::select1() {
 		vector<Tuple *> tuples = block->getBlockTupls();
 		for (auto it = tuples.begin(); it != tuples.end(); it++) {
 			bool flag = false;
+			for (unsigned int k = 0; k < conditions.size(); k++) {
+				BasicType * left = (*it)->getTupleBasicType(conditions[k]->column1Index);
+				int type = rel->getTypeName(conditions[k]->column1Index);
+				bool result = check(left, type, conditions[k]->symbol, conditions[k]->column2);
+				if (join[k] == "or") {
+					flag |= result;
+				} else {
+					flag &= result;
+				}
+			}
+			if (flag) {
+				(*it)->printTuple();
+				cout << endl;
+			}
 
-
+		}
+		//释放内存
+		for (auto it = tuples.begin(); it != tuples.end(); it++) {
+			delete (*it);
 		}
 	}
 }
@@ -354,7 +373,7 @@ void SelectSql::select2() {
 }
 
 bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
-	bool flag = true;
+	bool flag = false;
 	if (type == Global::INTEGER) {
 		int * leftData = (int*)left->getData();
 		int rightData;
@@ -422,9 +441,33 @@ bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
 			return (*leftData) <= rightData;
 		}
 	} else if (type == Global::CHAR) {
-
+		char * data = left->getData();
+		string leftData(data);
+		if (symbol == "=") {
+			return leftData == right;
+		} else if (symbol == ">") {
+			return leftData > right;
+		} else if (symbol == "<") {
+			return leftData < right;
+		} else if (symbol == ">=") {
+			return leftData >= right;
+		} else if (symbol == "<=") {
+			return leftData <= right;
+		}
 	} else if (type == Global::VARCHAR) {
-
+		char * data = left->getData();
+		string leftData(data);
+		if (symbol == "=") {
+			return leftData == right;
+		} else if (symbol == ">") {
+			return leftData > right;
+		} else if (symbol == "<") {
+			return leftData < right;
+		} else if (symbol == ">=") {
+			return leftData >= right;
+		} else if (symbol == "<=") {
+			return leftData <= right;
+		}
 	}
 	return flag;
 }
@@ -460,7 +503,6 @@ void SelectSql::select() {
 			}
 			tuples[i] = block->getBlockTupls();
 		}
-
 	}
 }
 
