@@ -115,6 +115,7 @@ public:
 	string getAttribute(int index);
 	bool hasAttribute(const string attr);
 	unsigned int getAttributeIndex(const char * attr);
+	unsigned int getAttributeIndex(const string attr);
 
 	
 	void setRelationName(char * relName);

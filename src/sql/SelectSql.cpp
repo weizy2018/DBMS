@@ -258,6 +258,18 @@ void SelectSql::checkCondition() {
 			}
 		}
 	}
+	for (unsigned int i = 0; i < conditions.size(); i++) {
+		if (conditions[i]->table1 != "") {
+			Relation * rel1 = Dictionary::getDictionary()->getRelation(conditions[i]->table1.c_str());
+			unsigned int column1Index = rel1->getAttributeIndex(conditions[i]->column1);
+			conditions[i]->column1Index = column1Index;
+		}
+		if (conditions[i]->table2 != "") {
+			Relation * rel2 = Dictionary::getDictionary()->getRelation(conditions[i]->table2.c_str());
+			unsigned int column2Index = rel2->getAttributeIndex(conditions[i]->column2);
+			conditions[i]->column2Index = column2Index;
+		}
+	}
 }
 //tableNames.size() == 1
 void SelectSql::selectAll() {
@@ -318,12 +330,103 @@ void SelectSql::selectAll2() {
 		}
 	}
 }
-
+//
+//单表查询
 void SelectSql::select1() {
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+	unsigned int totalBlock = rel->getTotalBlock();
+	for (unsigned int i = 0; i < totalBlock; i++)  {
+		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), i);
+		if (block == nullptr) {
+			block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(tableNames.at(0), i, block);
+		}
+		vector<Tuple *> tuples = block->getBlockTupls();
+		for (auto it = tuples.begin(); it != tuples.end(); it++) {
+			bool flag = false;
 
+
+		}
+	}
 }
 void SelectSql::select2() {
 
+}
+
+bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
+	bool flag = true;
+	if (type == Global::INTEGER) {
+		int * leftData = (int*)left->getData();
+		int rightData;
+		try {
+			rightData = stoi(right);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(right);
+			error.append("\' to \'int\'");
+			throw Error(error);
+		}
+		if (symbol == "=") {
+			return (*leftData) == rightData;
+		} else if (symbol == ">") {
+			return (*leftData) > rightData;
+		} else if (symbol == "<") {
+			return (*leftData) < rightData;
+		} else if (symbol == ">=") {
+			return (*leftData) >= rightData;
+		} else if (symbol == "<=") {
+			return (*leftData) <= rightData;
+		}
+	} else if (type == Global::FLOAT) {
+		float * leftData = (float*)left->getData();
+		float rightData;
+		try {
+			rightData = stof(right);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(right);
+			error.append("\' to \'float\'");
+			throw Error(error);
+		}
+		if (symbol == "=") {
+			return (*leftData) == rightData;
+		} else if (symbol == ">") {
+			return (*leftData) > rightData;
+		} else if (symbol == "<") {
+			return (*leftData) < rightData;
+		} else if (symbol == ">=") {
+			return (*leftData) >= rightData;
+		} else if (symbol == "<=") {
+			return (*leftData) <= rightData;
+		}
+	} else if (type == Global::DOUBLE) {
+		double * leftData = (double*)left->getData();
+		double rightData;
+		try {
+			rightData = stod(right);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(right);
+			error.append("\' to \'double\'");
+			throw Error(error);
+		}
+		if (symbol == "=") {
+			return (*leftData) == rightData;
+		} else if (symbol == ">") {
+			return (*leftData) > rightData;
+		} else if (symbol == "<") {
+			return (*leftData) < rightData;
+		} else if (symbol == ">=") {
+			return (*leftData) >= rightData;
+		} else if (symbol == "<=") {
+			return (*leftData) <= rightData;
+		}
+	} else if (type == Global::CHAR) {
+
+	} else if (type == Global::VARCHAR) {
+
+	}
+	return flag;
 }
 
 //不用了

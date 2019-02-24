@@ -12,6 +12,8 @@
 #include <vector>
 #include <string>
 
+#include "../../basic/head/BasicType.h"
+
 using namespace std;
 
 class Condition;
@@ -34,6 +36,9 @@ private:
 	void checkTable();			//检查from中的table是否在当前数据库中
 	void checkCondition();		//检查where中的column是否在对应的关系表中
 private:
+	bool check(BasicType * basic, int type, Condition * cond);
+	bool check(BasicType * left, int type, string symbol, string right);
+private:
 	void selectAll();
 	void selectAll2();
 
@@ -47,8 +52,10 @@ class Condition {
 public:
 	string table1;
 	string column1;
+	unsigned int column1Index;
 	string table2;
 	string column2;
+	unsigned int column2Index;
 	string symbol;
 public:
 	Condition(string tab1, string col1, string tab2, string col2, string sym) {
@@ -57,6 +64,8 @@ public:
 		this->table2 = tab2;
 		this->column2 = col2;
 		this->symbol = sym;
+		column1Index = -1;
+		column2Index = -1;
 	}
 };
 

@@ -455,6 +455,14 @@ unsigned int Relation::getAttributeIndex(const char * attr) {
 	}
 	return -1;
 }
+unsigned int Relation::getAttributeIndex(const string attr) {
+	for (unsigned int i = 0; i < attribute.size(); i++) {
+		if (attr == attribute.at(i)) {
+			return i;
+		}
+	}
+	return -1;
+}
 //获取关系表中对应的块
 Block * Relation::getBlock(const string databaseName, unsigned int blockId) {
 	FILE * relFile;
