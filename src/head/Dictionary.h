@@ -80,7 +80,9 @@ public:
 	Bplustree<int, unsigned long int> * getIntIndex(const string tableName, const string colName);
 	Bplustree<float, unsigned long int> * getFloatIndex(const string tableName, const string colName);
 	Bplustree<double, unsigned long int> * getDoubleIndex(const string tableName, const string colName);
-
+public:
+	bool isIndex(string tableName, string colName);
+	string getIndexName(string tableName, string colName);
 private:
     vector<Relation*> relations;
     const char * curDatabaseName;

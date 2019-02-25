@@ -16,6 +16,9 @@
 #include "../exception/head/SqlSyntaxException.h"
 #include "../exception/head/Error.h"
 
+#include "../tools/head/BPlusTree.h"
+#include "../tools/head/Bplustree.h"
+
 #include <string.h>
 
 
@@ -51,7 +54,13 @@ void SelectSql::execute() {
 		}
 	} else {
 		if (tableNames.size() == 1) {
-			select1();
+			int index = checkIndex();
+			if (index != -1) {
+				selectInIndex1(index);
+			} else {
+				select1();
+			}
+//			select1();
 		} else {
 			select2();
 		}
@@ -103,8 +112,8 @@ void SelectSql::handleConditions() {
 		return;
 	}
 
-	//向join中加入一个"or"
-	join.push_back("or");
+	//向join中加入一个"and"
+	join.push_back("and");
 
 	while (words[index] != ";") {
 		string table1 = "";
@@ -345,7 +354,7 @@ void SelectSql::select1() {
 		}
 		vector<Tuple *> tuples = block->getBlockTupls();
 		for (auto it = tuples.begin(); it != tuples.end(); it++) {
-			bool flag = false;
+			bool flag = true;
 			for (unsigned int k = 0; k < conditions.size(); k++) {
 				BasicType * left = (*it)->getTupleBasicType(conditions[k]->column1Index);
 				int type = rel->getTypeName(conditions[k]->column1Index);
@@ -369,6 +378,96 @@ void SelectSql::select1() {
 	}
 }
 void SelectSql::select2() {
+
+}
+//含有索引的单表查询
+//select * from student where id = '123' and name = 'zhangsan';
+void SelectSql::selectInIndex1(int index) {
+	cout << "search in index" << endl;
+	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+	int type = rel->getTypeName(conditions[index]->column1Index);
+
+	set<unsigned long int> blocksId;
+
+	if (type == Global::CHAR || type == Global::VARCHAR) {
+		BPlusTree<string, unsigned long int> * stringTree =
+				Dictionary::getDictionary()->getStringIndex(conditions[index]->table1, conditions[index]->column1);
+		blocksId = stringTree->get(conditions[index]->column2);
+//		cout << "b tree" << endl;
+//		stringTree->printTree();
+	} else if (type == Global::INTEGER) {
+		Bplustree<int, unsigned long int> * intTree =
+				Dictionary::getDictionary()->getIntIndex(conditions[index]->table1, conditions[index]->column1);
+		int key;
+		try {
+			key = stoi(conditions[index]->column2);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(conditions[index]->column2);
+			error.append("\' to \'int\'");
+			throw Error(error);
+		}
+		blocksId = intTree->get(key);
+	} else if (type == Global::FLOAT) {
+		Bplustree<float, unsigned long int> * floatTree =
+				Dictionary::getDictionary()->getFloatIndex(conditions[index]->table1, conditions[index]->column1);
+		float key;
+		try {
+			key = stof(conditions[index]->column2);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(conditions[index]->column2);
+			error.append("\' to \'float\'");
+			throw Error(error);
+		}
+		blocksId = floatTree->get(key);
+	} else if (type == Global::DOUBLE) {
+		Bplustree<double, unsigned long int> * doubleTree =
+				Dictionary::getDictionary()->getDoubleIndex(conditions[index]->table1, conditions[index]->column1);
+		double key;
+		try {
+			key = stod(conditions[index]->column2);
+		} catch (invalid_argument & e) {
+			string error("Cannot convert \'");
+			error.append(conditions[index]->column2);
+			error.append("\' to \'double\'");
+			throw Error(error);
+		}
+		blocksId = doubleTree->get(key);
+	}
+
+	cout << "blocksId.size() = " << blocksId.size() << endl;
+
+	for (auto it = blocksId.begin(); it != blocksId.end(); it++) {
+		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), *it);
+		if (block == nullptr) {
+			block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *it);
+			DBMS::getDBMSInst()->putBlock(tableNames.at(0), *it, block);
+		}
+
+		vector<Tuple *> tuples = block->getBlockTupls();
+		for (auto tup = tuples.begin(); tup != tuples.end(); tup++) {
+			bool flag = true;
+			for (unsigned int i = 0; i < conditions.size(); i++) {
+				BasicType * left = (*tup)->getTupleBasicType(conditions[i]->column1Index);
+				int type = rel->getTypeName(conditions[i]->column1Index);
+				bool result = check(left, type, conditions[i]->symbol, conditions[i]->column2);
+				if (join[i] == "or") {
+					flag |= result;
+				} else {
+					flag &= result;
+				}
+			}
+			if (flag) {
+				(*tup)->printTuple();
+				cout << endl;
+			}
+		}
+		//释放内存
+		for (auto tup = tuples.begin(); tup != tuples.end(); tup++) {
+			delete (*tup);
+		}
+	}
 
 }
 
@@ -472,39 +571,27 @@ bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
 	return flag;
 }
 
-//不用了
-void SelectSql::select() {
-	vector<Relation*> relations;
-	vector<unsigned int> blockCnt;
-	vector<unsigned int> tupleCnt;
-	vector<vector<Tuple*>> tuples;
-	for (unsigned int i = 0; i < tableNames.size(); i++) {
-		Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(i).c_str());
-		blockCnt.push_back(0);
-		relations.push_back(rel);
-	}
-	while (blockCnt[0] < relations[0]->getTotalBlock()) {
-		for (unsigned int i = tableNames.size() - 1; i >= 0; i--) {
-			if (blockCnt[i] >= relations[i]->getTotalBlock()) {
-				if (i == 0) {
-					return;
-				} else {
-					blockCnt[i] = 0;
-					blockCnt[i-1]++;
-				}
-			}
-		}
-		tuples.clear();	///.......
-		for (unsigned int i = 0; i < tableNames.size(); i++) {
-			Block * block = DBMS::getDBMSInst()->getBlock(tableNames[i], blockCnt[i]);
-			if (block == nullptr) {
-				block = relations[i]->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), blockCnt[i]);
-				DBMS::getDBMSInst()->putBlock(tableNames[i], blockCnt[i], block);
-			}
-			tuples[i] = block->getBlockTupls();
+//检查是否可以使用索引搜索（where 字句只有一个条件或者所有条件都是使用 and 连接起来的，并且所在列已经创建了索引)
+//返回where字句中第几个条件下标，如果没有返回-1
+int SelectSql::checkIndex() {
+	//先检查是否都是用and连接起来
+	for (auto it = join.begin(); it != join.end(); it++) {
+		if (*it != "and") {
+			return -1;
 		}
 	}
+	//检查condition中的table1.column1是否创建了索引 (有一个就得了)
+	int index = -1;
+	for (unsigned int i = 0 ; i < conditions.size(); i++) {
+		if (Dictionary::getDictionary()->isIndex(conditions[i]->table1, conditions[i]->column1)) {
+			index = i;
+			break;
+		}
+	}
+	return index;
 }
+
+
 
 
 

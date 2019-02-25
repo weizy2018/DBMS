@@ -15,6 +15,7 @@
 #include <exception>
 #include <typeinfo>
 #include <vector>
+#include <set>
 
 #include "BPlusTree.h"
 #include "../../exception/head/KeyNotFoundException.h"
@@ -45,7 +46,7 @@ public:
 	void init();					//用于初始化文件中已经存在了的b+树
 	void createIndex();				//发布create index后用于初始化b+树
 	void put(key k, value v);
-	vector<value> get(key k);
+	set<value> get(key k);
 
 	void remove(key k, value v);
 public:
@@ -162,7 +163,7 @@ template<typename key, typename value>
 BPlusTree<key, value>::BPlusTree(const char * indexFileName, int keyLen, int valueLen, bool create) {
 	this->indexFileName = (char*)malloc(Global::INDEX_FILE_PATH_LENGTH);
 	strcpy(this->indexFileName, indexFileName);
-	this->keyLen = keyLen;
+	this->keyLen = keyLen + 1;	//由于字符串需要多存储一个\0，所以需要+1
 	this->valueLen = valueLen;
 	head = (char*)malloc(sizeof(totalBlock) + sizeof(root));
 	treeNodeMaxSize = (TREE_NODE_DATA_SIZE - valueLen)/(keyLen + valueLen);
@@ -1166,7 +1167,7 @@ TreeNode<key, value> * BPlusTree<key, value>::getLeafNode(key k) {
  * 查找关键词k在文件中的块号
  */
 template<typename key, typename value>
-vector<value> BPlusTree<key, value>::get(key k) {
+set<value> BPlusTree<key, value>::get(key k) {
 	//rootNode 为叶节点 (即索引中只有一个节点，直接遍历该叶节点即可）
 	FILE * indexFile;
 	if ((indexFile = fopen(indexFileName, "rb")) == NULL) {
@@ -1201,7 +1202,8 @@ vector<value> BPlusTree<key, value>::get(key k) {
 	//查找关键词k是否在子节点中
 	int index = node->binarySearch(k);
 
-	vector<value> values;
+//	vector<value> values;
+	set<value> values;
 
 	//index == -1表示没找到，否则index表示索引值k的下标
 //	if (index==-1) {
@@ -1214,15 +1216,18 @@ vector<value> BPlusTree<key, value>::get(key k) {
 	if (index != -1) {
 		for (int i = index - 1; i >=0; i--) {
 			if (node->getKey(i) == k) {
-				values.push_back(node->getValue(i));
+//				values.push_back(node->getValue(i));
+				values.insert(node->getValue(i));
 			} else {
 				break;
 			}
 		}
-		values.push_back(node->getValue(index));
+//		values.push_back(node->getValue(index));
+		values.insert(node->getValue(index));
 		for (int i = index + 1; i < node->getCount(); i++) {
 			if (node->getKey(i) == k) {
-				values.push_back(node->getValue(i));
+//				values.push_back(node->getValue(i));
+				values.insert(node->getValue(i));
 			} else {
 				break;
 			}
@@ -1262,7 +1267,7 @@ void BPlusTree<key, value>::printTree() {
 			fread(block, BLOCK_SIZE, 1, indexFile);
 			//TreeNode(const char * block, int keyLen, int valueLen, const char * indexFileName);
 			node = new TreeNode<key, value>(block, keyLen, valueLen, indexFileName);
-			TreeNode<key, value> * t = lruCache->getLruCache()->put(nextAddr, node);
+			TreeNode<key, value> * t = lruCache->put(nextAddr, node);
 			if (t) {
 				delete t;
 			}

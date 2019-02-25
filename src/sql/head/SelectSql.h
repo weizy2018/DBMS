@@ -36,8 +36,8 @@ private:
 	void checkTable();			//检查from中的table是否在当前数据库中
 	void checkCondition();		//检查where中的column是否在对应的关系表中
 private:
-	bool check(BasicType * basic, int type, Condition * cond);
 	bool check(BasicType * left, int type, string symbol, string right);
+	int checkIndex();
 private:
 	void selectAll();
 	void selectAll2();
@@ -45,14 +45,15 @@ private:
 	void select1();
 	void select2();
 
-	void select();
+	void selectInIndex1(int index);
+
 };
 
 class Condition {
 public:
 	string table1;
 	string column1;
-	unsigned int column1Index;
+	unsigned int column1Index;	//在第几列
 	string table2;
 	string column2;
 	unsigned int column2Index;

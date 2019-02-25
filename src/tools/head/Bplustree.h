@@ -16,6 +16,7 @@
 #include <exception>
 #include <typeinfo>
 #include <vector>
+#include <set>
 
 #include "Bplustree.h"
 #include "../../exception/head/KeyNotFoundException.h"
@@ -46,7 +47,7 @@ public:
 	void init();					//用于初始化文件中已经存在了的b+树
 	void createIndex();				//发布create index后用于初始化b+树
 	void put(key k, value v);
-	vector<value> get(key k);				//应该是unsigned long int的，但是因为找不到的时候返回-1，索引只能是有符号的整数了
+	set<value> get(key k);				//应该是unsigned long int的，但是因为找不到的时候返回-1，索引只能是有符号的整数了
 									//后期可改为抛出异常进行处理
 	void remove(key k, value v);
 public:
@@ -1167,7 +1168,7 @@ Treenode<key, value> * Bplustree<key, value>::getLeafNode(key k) {
  * 查找关键词k在文件中的块号
  */
 template<typename key, typename value>
-vector<value> Bplustree<key, value>::get(key k) {
+set<value> Bplustree<key, value>::get(key k) {
 	//rootNode 为叶节点 (即索引中只有一个节点，直接遍历该叶节点即可）
 	FILE * indexFile;
 	if ((indexFile = fopen(indexFileName, "rb")) == NULL) {
@@ -1202,7 +1203,8 @@ vector<value> Bplustree<key, value>::get(key k) {
 	//查找关键词k是否在子节点中
 	int index = node->binarySearch(k);
 
-	vector<value> values;
+//	vector<value> values;
+	set<value> values;
 
 	//index == -1表示没找到，否则index表示索引值k的下标
 //	if (index==-1) {
@@ -1213,15 +1215,18 @@ vector<value> Bplustree<key, value>::get(key k) {
 	if (index != -1) {
 		for (int i = index - 1; i >=0; i--) {
 			if (node->getKey(i) == k) {
-				values.push_back(node->getValue(i));
+//				values.push_back(node->getValue(i));
+				values.insert(node->getValue(i));
 			} else {
 				break;
 			}
 		}
-		values.push_back(node->getValue(index));
+//		values.push_back(node->getValue(index));
+		values.insert(node->getValue(index));
 		for (int i = index + 1; i < node->getCount(); i++) {
 			if (node->getKey(i) == k) {
-				values.push_back(node->getValue(i));
+//				values.push_back(node->getValue(i));
+				values.insert(node->getValue(i));
 			} else {
 				break;
 			}

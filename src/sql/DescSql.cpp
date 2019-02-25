@@ -43,25 +43,34 @@ void DescSql::execute() {
 	}
 	unsigned int maxFieldLen = 5;
 	unsigned int maxTypeLen  = 13;
+	unsigned int maxIndexNameLen = 5;
 	int totalProperty = rel->getTotalProperty();
 	for (int i = 0; i < totalProperty; i++) {
 		string attr = rel->getAttribute(i);
 		if (attr.length() > maxFieldLen) {
 			maxFieldLen = attr.length();
 		}
+		string indexName = Dictionary::getDictionary()->getIndexName(rel->getRelationName(), attr);
+		if (indexName.length() > maxIndexNameLen) {
+			maxIndexNameLen = indexName.length();
+		}
 	}
 	maxFieldLen += 1;
+	maxIndexNameLen += 1;
 
 	cout << setfill('-') << left << setw(maxFieldLen+2) << "+";
 	cout << setfill('-') << left << setw(maxTypeLen+2) << "+";
+	cout << setfill('-') << left << setw(maxIndexNameLen+2) << "+";
 	cout << "+" << endl;
 
 	cout << "| " << setfill(' ') << left << setw(maxFieldLen) << "Field";
 	cout << "| " << setfill(' ') << left << setw(maxTypeLen) << "Type";
+	cout << "| " << setfill(' ') << left << setw(maxIndexNameLen) << "Index";
 	cout << "|" << endl;
 
 	cout << setfill('-') << left << setw(maxFieldLen+2) << "+";
 	cout << setfill('-') << left << setw(maxTypeLen+2) << "+";
+	cout << setfill('-') << left << setw(maxIndexNameLen+2) << "+";
 	cout << "+" << endl;
 
 	for (int i = 0; i < totalProperty; i++) {
@@ -83,12 +92,16 @@ void DescSql::execute() {
 			type.append(to_string(rel->getTypeValue(i)));
 			type.append(")");
 		}
-
 		cout << "| " << setfill(' ') << left << setw(maxTypeLen) << type;
+
+		string indexName = Dictionary::getDictionary()->getIndexName(rel->getRelationName(), rel->getAttribute(i));
+		cout << "| " << setfill(' ') << left << setw(maxIndexNameLen) << indexName;
+
 		cout << "|" << endl;
 	}
 	cout << setfill('-') << left << setw(maxFieldLen+2) << "+";
 	cout << setfill('-') << left << setw(maxTypeLen+2) << "+";
+	cout << setfill('-') << left << setw(maxIndexNameLen+2) << "+";
 	cout << "+" << endl;
 }
 

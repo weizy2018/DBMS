@@ -22,5 +22,5 @@ varchar 20
 char 10
 
 
-student gender gender_index
-student name name_index
+student gender student_gender
+student name student_name

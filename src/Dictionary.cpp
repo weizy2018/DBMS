@@ -271,6 +271,33 @@ Bplustree<double, unsigned long int> * Dictionary::getDoubleIndex(const string t
 	return tree;
 }
 
+bool Dictionary::isIndex(string tableName, string colName) {
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	bool flag = false;
+	for (auto it = indexs.begin(); it != indexs.end(); it++) {
+		if (it->first == key) {
+			flag = true;
+			break;
+		}
+	}
+	return flag;
+}
+
+string Dictionary::getIndexName(string tableName, string colName) {
+	string key(tableName);
+	key.append("$");
+	key.append(colName);
+	string indexName = "";
+	for (auto it = indexs.begin(); it != indexs.end(); it++) {
+		if (it->first == key) {
+			indexName = it->second;
+			break;
+		}
+	}
+	return indexName;
+}
 
 //==============================================
 
