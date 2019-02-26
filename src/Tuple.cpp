@@ -271,24 +271,29 @@ void Tuple::printTuple() {
 		switch(relationDic->getTypeName(i)) {
 		case Global::INTEGER:{
 			int * data1 = (int*)basicData.at(i)->getData();
-			printf("  %d", *data1);
+//			printf("  %d", *data1);
+			cout << *data1 << "  ";
 			break;
 		}
 		case Global::FLOAT:{
 			float * data2 = (float*)basicData.at(i)->getData();
-			printf("  %f", *data2);
+//			printf("  %f", *data2);
+			cout << *data2 << "  ";
 			break;
 		}
 		case Global::DOUBLE:{
 			double * data3 = (double*)basicData.at(i)->getData();
-			printf("  %f", *data3);
+//			printf("  %f", *data3);
+			cout << *data3 << "  ";
 			break;
 		}
 		case Global::CHAR:
-			printf("  %s", basicData.at(i)->getData());
+//			printf("  %s", basicData.at(i)->getData());
+			cout << basicData.at(i)->getData() << "  ";
 			break;
 		case Global::VARCHAR:
-			printf("  %s", basicData.at(i)->getData());
+//			printf("  %s", basicData.at(i)->getData());
+			cout << basicData.at(i)->getData() << "  ";
 			break;
 		}
 	}

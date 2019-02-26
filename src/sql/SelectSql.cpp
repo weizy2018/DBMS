@@ -60,7 +60,6 @@ void SelectSql::execute() {
 			} else {
 				select1();
 			}
-//			select1();
 		} else {
 			select2();
 		}
@@ -383,7 +382,7 @@ void SelectSql::select2() {
 //含有索引的单表查询
 //select * from student where id = '123' and name = 'zhangsan';
 void SelectSql::selectInIndex1(int index) {
-	cout << "search in index" << endl;
+//	cout << "search in index" << endl;
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	int type = rel->getTypeName(conditions[index]->column1Index);
 
@@ -436,7 +435,7 @@ void SelectSql::selectInIndex1(int index) {
 		blocksId = doubleTree->get(key);
 	}
 
-	cout << "blocksId.size() = " << blocksId.size() << endl;
+//	cout << "blocksId.size() = " << blocksId.size() << endl;
 
 	for (auto it = blocksId.begin(); it != blocksId.end(); it++) {
 		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), *it);
