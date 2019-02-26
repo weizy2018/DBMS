@@ -282,6 +282,7 @@ void SelectSql::checkCondition() {
 	}
 }
 //tableNames.size() == 1
+//单表无条件查询
 void SelectSql::selectAll() {
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(0).c_str());
 	unsigned int totalBlock = rel->getTotalBlock();
@@ -304,6 +305,7 @@ void SelectSql::selectAll() {
 	}
 }
 //tableNames.size() == 2	最多只能支持两个表联立了
+//双表无条件查询
 void SelectSql::selectAll2() {
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
@@ -341,7 +343,7 @@ void SelectSql::selectAll2() {
 	}
 }
 //条件语句中没有优先级之分(没有括号),同意从左到右依次运算
-//单表查询
+//单表有条件查询（没有使用索引）
 void SelectSql::select1() {
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	unsigned int totalBlock = rel->getTotalBlock();
@@ -376,10 +378,111 @@ void SelectSql::select1() {
 		}
 	}
 }
+//select * from table1, table2 where table1.id = table2.id and table1.col1 > 100 and/or table2.col2 < 200;
+//双表有条件查询（没有使用索引）
 void SelectSql::select2() {
+	//需要分两种情况，1）条件中含有or连接词的和不含有的
+	bool flag = true;
+	for (auto it = join.begin(); it != join.end(); it++) {
+		if ((*it) == "or") {
+			flag = false;
+			break;
+		}
+	}
+	if (flag)
+		select2NoOr();
+	else
+		select2WithOr();
 
 }
-//含有索引的单表查询
+//条件中含有or连接的没有任何技巧，从头到尾做自然连接，选择符合条件的输出
+void SelectSql::select2WithOr() {
+	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+	unsigned int totalBlock1 = rel1->getTotalBlock();
+	unsigned int totalBlock2 = rel2->getTotalBlock();
+	for (unsigned int i = 0; i < totalBlock1; i++) {
+		Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+		if (block1 == nullptr) {
+			block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+			DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+		}
+		vector<Tuple *> tuples1 = block1->getBlockTupls();
+		for (unsigned int j = 0; j < totalBlock2; j++) {
+			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
+			if (block2 == nullptr) {
+				block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+				DBMS::getDBMSInst()->putBlock(tableNames[0], j, block2);
+			}
+			vector<Tuple *> tuples2 = block2->getBlockTupls();
+			//条件选择
+			for (unsigned int u = 0; u < tuples1.size(); u++) {
+				for (unsigned int v = 0; v < tuples2.size(); v++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < conditions.size(); k++) {
+						bool result = false;
+						int type;
+						BasicType * left;
+						if (conditions[k]->table2 == "") {					//table.name = "abc"类型
+							if (conditions[k]->table1 == tableNames[0]) {	//table1的条件
+								//BasicType * left = (*it)->getTupleBasicType(conditions[k]->column1Index);
+								//int type = rel->getTypeName(conditions[k]->column1Index);
+								left = tuples1[u]->getTupleBasicType(conditions[k]->column1Index);
+								type = rel1->getTypeName(conditions[k]->column1Index);
+								result = check(left, type, conditions[k]->symbol, conditions[k]->column2);
+							} else {										//table2的条件
+								left = tuples2[v]->getTupleBasicType(conditions[k]->column1Index);
+								type = rel2->getTypeName(conditions[k]->column1Index);
+								result = check(left, type, conditions[k]->symbol, conditions[k]->column2);
+							}
+						} else {											//table1.id = table2.id类型
+
+						}
+						if (join[k] == "and") {
+							flag &= result;
+						} else {
+							flag |= result;
+						}
+					}
+					if (flag) {
+						tuples1[u]->printTuple();
+						tuples2[v]->printTuple();
+						cout << endl;
+					}
+				}
+			}
+		}
+	}
+	//bool SelectSql::check(BasicType * left, int type, string symbol, string right)
+}
+void SelectSql::select2NoOr() {
+	vector<Condition *> table1;
+	vector<Condition *> table2;
+	vector<Condition *> both;
+	//将查询条件分类
+	for (unsigned int i = 0; i < conditions.size(); i++) {
+		if (conditions[i]->table1 == tableNames[0] && conditions[i]->table2 == "") {	//table1.column1 > 25类型
+			table1.push_back(conditions[i]);
+		} else if (conditions[i]->table1 == tableNames[1] && conditions[i]->table2 == "") { //table2.column2 > 4000类型
+			table2.push_back(conditions[i]);
+		} else {																		//table1.column1 = table2.column2类型
+			both.push_back(conditions[i]);
+		}
+	}
+	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+	unsigned int totalBlock1 = rel1->getTotalBlock();
+	unsigned int totalBlock2 = rel2->getTotalBlock();
+	if (table2.size() == 0) {
+		//对于table2没有条件限定
+
+	} else {
+		//对于table2有条件限定
+		//选出table2中符合的条件放入临时文件中，然后在进行自然啊连接
+	}
+
+}
+//单表有条件查询（使用索引）
 //select * from student where id = '123' and name = 'zhangsan';
 void SelectSql::selectInIndex1(int index) {
 //	cout << "search in index" << endl;

@@ -39,13 +39,17 @@ private:
 	bool check(BasicType * left, int type, string symbol, string right);
 	int checkIndex();
 private:
-	void selectAll();
-	void selectAll2();
+	void selectAll();					//单表无条件查询
+	void selectAll2();					//双表无条件查询
 
-	void select1();
-	void select2();
+	void select1();						//单表有条件查询（没有使用索引）
+	void select2();						//双表有条件查询（没有使用索引）
+	//对select2分出的两种情况
+	void select2WithOr();				//有or的情况
+	void select2NoOr();					//没有or的情况
 
-	void selectInIndex1(int index);
+	void selectInIndex1(int index);		//单表有条件查询（使用索引）
+	void selectInIndex2(int index);		//双表有条件查询（使用索引）
 
 };
 
