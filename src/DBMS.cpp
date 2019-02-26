@@ -592,6 +592,7 @@ void DBMS::changeDatabase(const char * databaseName) {
 		error.append("\'");
 		throw DatabaseException(error);
 	} else if (strcmp(currentDatabase.c_str(), databaseName) == 0) {
+		cout << "Database changed" << endl;
 		return;
 	}
 	if (lru) {
@@ -605,7 +606,7 @@ void DBMS::changeDatabase(const char * databaseName) {
 	this->initialDictionary(databaseName);
 
 	Dictionary::getDictionary()->setCurDatabaseName(currentDatabase.c_str());
-	cout << "change success" << endl;
+	cout << "Database changed" << endl;
 }
 
 /*

@@ -13,6 +13,7 @@
 #include <string>
 
 #include "../../basic/head/BasicType.h"
+#include "../../head/Dictionary.h"
 
 using namespace std;
 
@@ -30,11 +31,17 @@ private:
 	vector<string> tableNames;
 	vector<Condition *> conditions;
 	vector<string> join;			//连接conditions的连接词(and, or)
+
+	vector<int> head;				//标题的长度
 private:
 	void handleTables();
 	void handleConditions();
 	void checkTable();			//检查from中的table是否在当前数据库中
 	void checkCondition();		//检查where中的column是否在对应的关系表中
+
+private:
+	void printHead(vector<Relation *> relations);
+	void printTail();
 private:
 	bool check(BasicType * left, int type, string symbol, string right);
 	int checkIndex();

@@ -20,6 +20,7 @@
 #include "../tools/head/Bplustree.h"
 
 #include <string.h>
+#include <iomanip>
 
 
 SelectSql::SelectSql(const vector<string> ws) : words(ws) {
@@ -285,6 +286,11 @@ void SelectSql::checkCondition() {
 //单表无条件查询
 void SelectSql::selectAll() {
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(0).c_str());
+
+	vector<Relation *> rels;
+	rels.push_back(rel);
+	printHead(rels);
+
 	unsigned int totalBlock = rel->getTotalBlock();
 	for (unsigned int i = 0; i < totalBlock; i++) {
 		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), i);
@@ -303,12 +309,19 @@ void SelectSql::selectAll() {
 			delete (*it);
 		}
 	}
+	printTail();
 }
 //tableNames.size() == 2	最多只能支持两个表联立了
 //双表无条件查询
 void SelectSql::selectAll2() {
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+
+	vector<Relation *> rels;
+	rels.push_back(rel1);
+	rels.push_back(rel2);
+	printHead(rels);
+
 	unsigned int totalBlock1 = rel1->getTotalBlock();
 	unsigned int totalBlock2 = rel2->getTotalBlock();
 	for (unsigned int i = 0; i < totalBlock1; i++) {
@@ -341,11 +354,17 @@ void SelectSql::selectAll2() {
 			delete (*it);
 		}
 	}
+	printTail();
 }
 //条件语句中没有优先级之分(没有括号),同意从左到右依次运算
 //单表有条件查询（没有使用索引）
 void SelectSql::select1() {
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
+
+	vector<Relation *> rels;
+	rels.push_back(rel);
+	printHead(rels);
+
 	unsigned int totalBlock = rel->getTotalBlock();
 	for (unsigned int i = 0; i < totalBlock; i++)  {
 		Block * block = DBMS::getDBMSInst()->getBlock(tableNames.at(0), i);
@@ -377,6 +396,7 @@ void SelectSql::select1() {
 			delete (*it);
 		}
 	}
+	printTail();
 }
 //select * from table1, table2 where table1.id = table2.id and table1.col1 > 100 and/or table2.col2 < 200;
 //双表有条件查询（没有使用索引）
@@ -389,16 +409,23 @@ void SelectSql::select2() {
 			break;
 		}
 	}
-	if (flag)
-		select2NoOr();
-	else
-		select2WithOr();
+//	if (flag)
+//		select2NoOr();
+//	else
+//		select2WithOr();
+	select2WithOr();
 
 }
 //条件中含有or连接的没有任何技巧，从头到尾做自然连接，选择符合条件的输出
 void SelectSql::select2WithOr() {
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+
+	vector<Relation *> rels;
+	rels.push_back(rel1);
+	rels.push_back(rel2);
+	printHead(rels);
+
 	unsigned int totalBlock1 = rel1->getTotalBlock();
 	unsigned int totalBlock2 = rel2->getTotalBlock();
 	for (unsigned int i = 0; i < totalBlock1; i++) {
@@ -436,7 +463,10 @@ void SelectSql::select2WithOr() {
 								result = check(left, type, conditions[k]->symbol, conditions[k]->column2);
 							}
 						} else {											//table1.id = table2.id类型
-
+							left = tuples1[u]->getTupleBasicType(conditions[k]->column1Index);
+							BasicType * right = tuples2[v]->getTupleBasicType(conditions[k]->column2Index);
+							type = rel1->getTypeName(conditions[k]->column1Index);
+							result = check(left, type, conditions[k]->symbol, right->getData());
 						}
 						if (join[k] == "and") {
 							flag &= result;
@@ -451,9 +481,15 @@ void SelectSql::select2WithOr() {
 					}
 				}
 			}
+			for (auto it = tuples2.begin(); it != tuples2.end(); it++) {
+				delete (*it);
+			}
+		}
+		for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+			delete (*it);
 		}
 	}
-	//bool SelectSql::check(BasicType * left, int type, string symbol, string right)
+	printTail();
 }
 void SelectSql::select2NoOr() {
 	vector<Condition *> table1;
@@ -481,6 +517,9 @@ void SelectSql::select2NoOr() {
 		//选出table2中符合的条件放入临时文件中，然后在进行自然啊连接
 	}
 
+
+	//bool SelectSql::check(BasicType * left, int type, string symbol, string right)
+
 }
 //单表有条件查询（使用索引）
 //select * from student where id = '123' and name = 'zhangsan';
@@ -488,6 +527,10 @@ void SelectSql::selectInIndex1(int index) {
 //	cout << "search in index" << endl;
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	int type = rel->getTypeName(conditions[index]->column1Index);
+
+	vector<Relation *> rels;
+	rels.push_back(rel);
+	printHead(rels);
 
 	set<unsigned long int> blocksId;
 
@@ -570,7 +613,7 @@ void SelectSql::selectInIndex1(int index) {
 			delete (*tup);
 		}
 	}
-
+	printTail();
 }
 
 bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
@@ -691,6 +734,39 @@ int SelectSql::checkIndex() {
 		}
 	}
 	return index;
+}
+
+void SelectSql::printHead(vector<Relation *> relations) {
+	for (auto it = relations.begin(); it != relations.end(); it++) {
+		int totalProperty = (*it)->getTotalProperty();
+		for (int i = 0; i < totalProperty; i++) {
+			string attr = (*it)->getAttribute(i);
+			head.push_back(attr.length() + 1);
+		}
+	}
+	for (auto it = head.begin(); it != head.end(); it++) {
+		cout << setfill('-') << left << setw(*it + 2) << "+";
+	}
+	cout << "+" << endl;
+	for (auto it = relations.begin(); it != relations.end(); it++) {
+		int totalProperty = (*it)->getTotalProperty();
+		for (int i = 0; i < totalProperty; i++) {
+			string attr = (*it)->getAttribute(i);
+			cout << "| ";
+			cout << attr << " ";
+		}
+	}
+	cout << "|" << endl;
+	for (auto it = head.begin(); it != head.end(); it++) {
+		cout << setfill('-') << left << setw(*it + 2) << "+";
+	}
+	cout << "+" << endl;
+}
+void SelectSql::printTail() {
+	for (auto it = head.begin(); it != head.end(); it++) {
+		cout << setfill('-') << left << setw(*it + 2) << "+";
+	}
+	cout << "+" << endl;
 }
 
 
