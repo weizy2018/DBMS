@@ -25,6 +25,12 @@ Tuple::Tuple(char * tupData, const Relation * rel):relationDic(rel){
 	this->tupleData = tupData;
 	parsedTuple(0);
 }
+
+Tuple::Tuple(char * tupData, const Relation * rel, int len):relationDic(rel) {
+	this->tupleData = tupData;
+	tupTotalLength = len;
+	parsedTuple(0);
+}
 //Tuple::Tuple(const char * tupData, int start, const Relation * rel) {
 //	this->tupleData = tupData;
 //	this->relationDic = rel;

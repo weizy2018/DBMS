@@ -38,6 +38,33 @@ SelectSql::~SelectSql() {
 	}
 }
 void SelectSql::execute() {
+	if (words[1] == "database") {
+		if (words[2] == "(" && words[3] ==")" && words[4] == ";") {
+			unsigned int maxLen = 10;
+			string currentDatabase = DBMS::getDBMSInst()->getCurrentDatabase();
+			if (currentDatabase == "") {
+				currentDatabase = "NULL";
+			}
+			if (currentDatabase.length() > maxLen) {
+				maxLen = currentDatabase.length();
+			}
+			maxLen++;
+			cout << setfill('-') << left << setw(maxLen+2) << "+";
+			cout << "+" << endl;
+			cout << "| ";
+			cout << setfill(' ') << left << setw(maxLen) << "database()";
+			cout << "|" << endl;
+			cout << setfill('-') << left << setw(maxLen+2) << "+";
+			cout << "+" << endl;
+			cout << "| ";
+			cout << setfill(' ') << left << setw(maxLen) << currentDatabase;
+			cout << "|" << endl;
+			cout << setfill('-') << left << setw(maxLen+2) << "+";
+			cout << "+" << endl;
+			return;
+		}
+	}
+
 	if (DBMS::getDBMSInst()->getCurrentDatabase() == "") {
 		throw Error("no database selected");
 	}
@@ -52,20 +79,20 @@ void SelectSql::execute() {
 
 	if (conditions.size() == 0) {
 		if (tableNames.size() == 1) {
-			selectAll();
+			selectAll();						//单表查询、无条件
 		} else {
-			selectAll2();
+			selectAll2();						//双表查询、无条件
 		}
 	} else {
 		if (tableNames.size() == 1) {
 			int index = checkIndex();
 			if (index != -1) {
-				selectInIndex1(index);
+				selectInIndex1(index);			//单表查询、有条件、使用索引
 			} else {
-				select1();
+				select1();						//单表查询、有条件、不使用索引
 			}
 		} else {
-			select2();
+			select2();							//双表查询、有条件、在能用索引情况下使用索引加速查询
 		}
 	}
 
@@ -437,6 +464,7 @@ void SelectSql::select2WithOr() {
 			DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
 		}
 		vector<Tuple *> tuples1 = block1->getBlockTupls();
+
 		for (unsigned int j = 0; j < totalBlock2; j++) {
 			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
 			if (block2 == nullptr) {
@@ -511,71 +539,197 @@ void SelectSql::select2NoOr() {
 	}
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
+
+	vector<Relation *> rels;
+	rels.push_back(rel1);
+	rels.push_back(rel2);
+	printHead(rels);
+
 	unsigned int totalBlock1 = rel1->getTotalBlock();
 	unsigned int totalBlock2 = rel2->getTotalBlock();
 	if (table2.size() == 0) {
 		/*
-		 * 对于table2没有条件限定
+		 * 对于table2没有条件限定的情况
 		 */
-		for (unsigned int i = 0; i < totalBlock1; i++) {
-			Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
-			if (block1 == nullptr) {
-				block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
-				DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+		int index = findIndex(table1);
+		if (index != -1) {					//从table1中使用索引筛选满足table1的条件元组
+			/*
+			 * 对于table2没有条件限定的情况下，table1能够使用索引查询
+			 */
+			int type = rel1->getTypeName(table1[index]->column1Index);
+			set<unsigned long int> blocksId;
+
+			if (type == Global::CHAR || type == Global::VARCHAR) {
+				BPlusTree<string, unsigned long int> * stringTree =
+						Dictionary::getDictionary()->getStringIndex(table1[index]->table1, table1[index]->column1);
+				blocksId = stringTree->get(table1[index]->column2);
+			} else if (type == Global::INTEGER) {
+				Bplustree<int, unsigned long int> * intTree =
+						Dictionary::getDictionary()->getIntIndex(table1[index]->table1, table1[index]->column1);
+				int key;
+				try {
+					key = stoi(table1[index]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table1[index]->column2);
+					error.append("\' to \'int\'");
+					throw Error(error);
+				}
+				blocksId = intTree->get(key);
+
+			} else if (type == Global::FLOAT) {
+				Bplustree<float, unsigned long int> * floatTree =
+						Dictionary::getDictionary()->getFloatIndex(table1[index]->table1, table1[index]->column1);
+				float key;
+				try {
+					key = stof(table1[index]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table1[index]->column2);
+					error.append("\' to \'float\'");
+					throw Error(error);
+				}
+				blocksId = floatTree->get(key);
+
+			} else if (type == Global::DOUBLE) {
+				Bplustree<double, unsigned long int> * doubleTree =
+						Dictionary::getDictionary()->getDoubleIndex(table1[index]->table1, table1[index]->column1);
+				double key;
+				try {
+					key = stod(table1[index]->column2);
+ 				} catch (invalid_argument & e) {
+ 					string error("Cannot convert \'");
+ 					error.append(table1[index]->column2);
+ 					error.append("\' to \'double\'");
+ 					throw Error(error);
+ 				}
+ 				blocksId = doubleTree->get(key);
 			}
-			vector<Tuple *> tuples1 = block1->getBlockTupls();
-			//选择满足table1条件的元组
-			vector<Tuple *> tups1;
-			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
-				bool flag = true;
-				for (unsigned int k = 0; k < table1.size(); k++) {
-					//BasicType * left = (*it)->getTupleBasicType(conditions[k]->column1Index);
-					//int type = rel->getTypeName(conditions[k]->column1Index);
-					BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
-					int type = rel1->getTypeName(table1[k]->column1Index);
-					flag = check(left, type, table1[k]->symbol, table1[k]->column2);
-					//由于都是用and连接的，所以只要有一个不满足条件就是false
-					if (!flag) {
-						break;
+			for (auto it = blocksId.begin(); it != blocksId.end(); it++) {
+				Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], *it);
+				if (block1 == nullptr) {
+					block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *it);
+					DBMS::getDBMSInst()->putBlock(tableNames[0], *it, block1);
+				}
+				vector<Tuple *> tuples1 = block1->getBlockTupls();
+				//选择满足table1条件的元组
+				vector<Tuple *> tups1;
+				for (auto tup = tuples1.begin(); tup != tuples1.end(); tup++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table1.size(); k++) {
+						BasicType * left = (*tup)->getTupleBasicType(table1[k]->column1Index);
+						int type = rel1->getTypeName(table1[k]->column1Index);
+						flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+						if (!flag) {
+							break;
+						}
+					}
+					if (flag) {
+						tups1.push_back(*tup);
 					}
 				}
-				if (flag) {
-					tups1.push_back(*it);
-				}
-			}
-			//table1与table2自然连接，选择满足both中的条件
-			//这里table2没有限定条件
-			for (unsigned int j = 0; j < totalBlock2; j++) {
-				Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
-				if (block2 == nullptr) {
-					block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
-					DBMS::getDBMSInst()->putBlock(tableNames[1], j, block2);
-				}
-				vector<Tuple *> tups2 = block2->getBlockTupls();
-				for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
-					for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
-						bool flag = true;
-						for (unsigned int k = 0; k < both.size(); k++) {
-							BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
-							BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
-							int type = rel1->getTypeName(both[k]->column1Index);
-							flag = check(left, type, both[k]->symbol, right->getData());
-							if (!flag) {
-								break;
+				//table1与table2自然连接，选择满足both中的条件
+				//这里table2没有限定条件
+				for (unsigned int j = 0; j < totalBlock2; j++) {
+					Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
+					if (block2 == nullptr) {
+						block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+						DBMS::getDBMSInst()->putBlock(tableNames[1], j, block2);
+					}
+					vector<Tuple *> tups2 = block2->getBlockTupls();
+					for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+						for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+							bool flag = true;
+							for (unsigned int k = 0; k < both.size(); k++) {
+								BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
+								BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
+								int type = rel1->getTypeName(both[k]->column1Index);
+								flag = check(left, type, both[k]->symbol, right->getData());
+								if (!flag) {
+									break;
+								}
+							}
+							if (flag) {
+								(*tup1)->printTuple();
+								(*tup2)->printTuple();
+								cout << endl;
 							}
 						}
-						if (flag) {
-							(*tup1)->printTuple();
-							(*tup2)->printTuple();
-							cout << endl;
-						}
+					}
+					for (auto it = tups2.begin(); it != tups2.end(); it++) {
+						delete (*it);
 					}
 				}
-				for (auto it = tups2.begin(); it != tups2.end(); it++) {
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+					delete (*it);
+				}
+			}
+		} else {
+			/*
+			 * 对于table2没有跳线限定的情况下，table1没有索引进行查询
+			 */
+			for (unsigned int i = 0; i < totalBlock1; i++) {
+				Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+				if (block1 == nullptr) {
+					block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+					DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+				}
+				vector<Tuple *> tuples1 = block1->getBlockTupls();
+				//选择满足table1条件的元组
+				vector<Tuple *> tups1;
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table1.size(); k++) {
+						BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
+						int type = rel1->getTypeName(table1[k]->column1Index);
+						flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+						//由于都是用and连接的，所以只要有一个不满足条件就是false
+						if (!flag) {
+							break;
+						}
+					}
+					if (flag) {
+						tups1.push_back(*it);
+					}
+				}
+				//table1与table2自然连接，选择满足both中的条件
+				//这里table2没有限定条件
+				for (unsigned int j = 0; j < totalBlock2; j++) {
+					Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
+					if (block2 == nullptr) {
+						block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+						DBMS::getDBMSInst()->putBlock(tableNames[1], j, block2);
+					}
+					vector<Tuple *> tups2 = block2->getBlockTupls();
+					for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+						for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+							bool flag = true;
+							for (unsigned int k = 0; k < both.size(); k++) {
+								BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
+								BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
+								int type = rel1->getTypeName(both[k]->column1Index);
+								flag = check(left, type, both[k]->symbol, right->getData());
+								if (!flag) {
+									break;
+								}
+							}
+							if (flag) {
+								(*tup1)->printTuple();
+								(*tup2)->printTuple();
+								cout << endl;
+							}
+						}
+					}
+					for (auto it = tups2.begin(); it != tups2.end(); it++) {
+						delete (*it);
+					}
+				}
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
 					delete (*it);
 				}
 			}
 		}
+
 	} else {
 		/*
 		 * 对于table2有条件限定
@@ -583,8 +737,8 @@ void SelectSql::select2NoOr() {
 		 */
 		unsigned int block2Cnt = 0;		//table2中满足table2限定条件的块数
 		//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName);
-		char relName[Global::MAX_RELATION_FILE_NAME];
-		char relFileName[Global::MAX_RELATION_FILE_NAME];
+		char * relName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
+		char * relFileName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
 		int totalProperty = rel2->getTotalProperty();
 		strcpy(relName, "temp");
 		strcpy(relFileName, "remp.tm");
@@ -601,10 +755,6 @@ void SelectSql::select2NoOr() {
 			tempRel->addType(rel2->getTypeName(i), rel2->getTypeValue(i));
 			tempRel->addAttribute(rel2->getAttribute(i).c_str());
 		}
-		cout << "rel2:" << endl;
-		rel2->printRelation();
-//		cout << "tempRel:" << endl;
-//		tempRel->printRelation();
 
 		Block * tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
 		tempRel->setTotalBlock(1);
@@ -614,6 +764,73 @@ void SelectSql::select2NoOr() {
 		/*
 		 * table2中筛选满足条件的元组并放入临时问价中
 		 */
+		int index2 = findIndex(table2);
+		if (index2 != -1) {
+			/*
+			 * table2能使用索引查询
+			*/
+			set<unsigned long int> blocks2Id;
+			int type = rel2->getTypeName(table2[index2]->column1Index);
+			if (type == Global::CHAR || type == Global::VARCHAR) {
+				BPlusTree<string, unsigned long int> * stringTree =
+						Dictionary::getDictionary()->getStringIndex(table2[index2]->table1, table2[index2]->column1);
+				blocks2Id = stringTree->get(table2[index2]->column2);
+
+			} else if (type == Global::INTEGER) {
+				Bplustree<int, unsigned long int> * intTree =
+						Dictionary::getDictionary()->getIntIndex(table2[index2]->table1, table2[index2]->column1);
+				int key;
+				try {
+					key = stoi(table2[index2]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table2[index2]->column2);
+					error.append("\' to \'int\'");
+					throw Error(error);
+				}
+				blocks2Id = intTree->get(key);
+
+			} else if (type == Global::FLOAT) {
+				Bplustree<float, unsigned long int> * floatTree =
+						Dictionary::getDictionary()->getFloatIndex(table2[index2]->table1, table2[index2]->column1);
+				float key;
+				try {
+					key = stof(table2[index2]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table2[index2]->column2);
+					error.append("\' to \'float\'");
+					throw Error(error);
+				}
+				blocks2Id = floatTree->get(key);
+
+			} else if (type == Global::DOUBLE) {
+				Bplustree<double, unsigned long int> * doubleTree =
+						Dictionary::getDictionary()->getDoubleIndex(table2[index2]->table1, table2[index2]->column1);
+				double key;
+				try {
+					key = stod(table2[index2]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table2[index2]->column2);
+					error.append("\' to \'double\'");
+					throw Error(error);
+				}
+				blocks2Id = doubleTree->get(key);
+			}
+			//遍历通过索引所得到的块，筛选出满足条件的元组放入临时文件中
+			for (auto it = blocks2Id.begin(); it != blocks2Id.end(); it++) {
+				Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], *it);
+				if (block2 == nullptr) {
+					block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *it);
+					DBMS::getDBMSInst()->putBlock(tableNames[1], *it, block2);
+				}
+
+			}
+		} else {
+
+		}
+
 		for (unsigned int i = 0; i < totalBlock2; i++) {
 			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], i);
 			if (block2 == nullptr) {
@@ -655,13 +872,7 @@ void SelectSql::select2NoOr() {
 		string key(relName);
 		key.append(to_string(block2Cnt));
 		tempLru->put(key, tempBlock);
-		block2Cnt++;
-
-		cout << "tempRel:" << endl;
-		tempRel->printRelation();
-
-		cout << "printBlock" << endl;
-		tempBlock->printBlock();
+		block2Cnt++;						//不用质疑、不用质疑、不用质疑
 		/*
 		 * table1与刚刚产生的临时文件中的元组做自然连接
 		 */
@@ -729,7 +940,9 @@ void SelectSql::select2NoOr() {
 		delete tempLru;
 		delete tempRel;	//relName和relFileName由tempRel释放
 	}
+	printTail();
 }
+
 //单表有条件查询（使用索引）
 //select * from student where id = '123' and name = 'zhangsan';
 void SelectSql::selectInIndex1(int index) {
@@ -927,6 +1140,7 @@ bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
 
 //检查是否可以使用索引搜索（where 字句只有一个条件或者所有条件都是使用 and 连接起来的，并且所在列已经创建了索引)
 //返回where字句中第几个条件下标，如果没有返回-1
+//(单表查询下）
 int SelectSql::checkIndex() {
 	//先检查是否都是用and连接起来
 	for (auto it = join.begin(); it != join.end(); it++) {
@@ -935,9 +1149,14 @@ int SelectSql::checkIndex() {
 		}
 	}
 	//检查condition中的table1.column1是否创建了索引 (有一个就得了)
+	int index = findIndex(conditions);
+	return index;
+}
+
+int SelectSql::findIndex(vector<Condition *> cons) {
 	int index = -1;
-	for (unsigned int i = 0 ; i < conditions.size(); i++) {
-		if (Dictionary::getDictionary()->isIndex(conditions[i]->table1, conditions[i]->column1)) {
+	for (unsigned int i = 0; i < cons.size(); i++) {
+		if (Dictionary::getDictionary()->isIndex(cons[i]->table1, cons[i]->column1) && cons[i]->symbol == "=") {
 			index = i;
 			break;
 		}

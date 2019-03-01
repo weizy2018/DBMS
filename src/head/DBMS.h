@@ -49,7 +49,7 @@ public:
 	void createTable(char * relName, vector<pair<string, pair<string, int>>> attrs);
 	void createIndex(const string indexName, const string tableName, const string attrName);
 	void insert(const char * tableName, vector<string> values);
-	void select(const vector<string> tableNames, vector<string> condition);
+	void select(const vector<string> tableNames, vector<string> condition);		//没用了
 	void changeDatabase(const char * databaseName);
 	void showDatabases();
 	void showTables();

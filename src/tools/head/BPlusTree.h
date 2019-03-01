@@ -47,6 +47,11 @@ public:
 	void createIndex();				//发布create index后用于初始化b+树
 	void put(key k, value v);
 	set<value> get(key k);
+//	set<value> getEqual(key k);
+//	set<value> getLess(key k);
+//	set<value> getLessAndEqual(key k);
+//	set<value> getGreater(key k);
+//	set<value> getGreaterAndEqual(key k);
 
 	void remove(key k, value v);
 public:
@@ -1235,6 +1240,19 @@ set<value> BPlusTree<key, value>::get(key k) {
 	}
 	return values;
 }
+
+//template<typename key, typename value>
+//set<value> BPlusTree<key, value>::getEqual(key k) {
+//	return get(k);
+//}
+//template<typename key, typename value>
+//set<value> BPlusTree<key, value>::getLess(key k) {
+//
+//}
+//template<typename key, typename value>
+//set<value> BPlusTree<key, value>::getGreater(key k) {
+//
+//}
 template<typename key, typename value>
 void BPlusTree<key, value>::printTree() {
 	rootNode = getRootNode();

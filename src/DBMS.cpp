@@ -87,13 +87,13 @@ void DBMS::loadDatabases() {
 }
 
 void DBMS::initialDictionary(const char * dicName) {
-	cout << "DBMS::inititalDictionary()" << endl;
+//	cout << "DBMS::inititalDictionary()" << endl;
 	Dictionary::getDictionary()->setCurDatabaseName(dicName);
     FILE * dicFile;
     //eg: data/school/school.desc
     string dicDescName(dicName);	//school
     dicDescName = "data/" + dicDescName + "/" + dicDescName + ".desc";
-    cout << "dicDescName : " << dicDescName << endl;
+//    cout << "dicDescName : " << dicDescName << endl;
 
     if ((dicFile = fopen(dicDescName.c_str(), "r")) == NULL) {
         throw FileNotFoundException("cannot open \'" + dicDescName + "\'");
@@ -207,7 +207,7 @@ void DBMS::initialDictionary(const char * dicName) {
     }
     fclose(dicFile);
     
-    printf("initial success!!!\n");
+//    printf("initial success!!!\n");
 }
 
 /*
@@ -570,7 +570,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 	Dictionary::getDictionary()->setChange(true);
 }
 
-//select
+//没用了
 void DBMS::select(const vector<string> tableNames, vector<string> condition) {
 	if (currentDatabase == "") {
 		throw InsertDataException("no database selected");

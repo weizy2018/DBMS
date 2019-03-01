@@ -22,6 +22,7 @@ class Tuple {
 public:
 	Tuple(const Relation * rel);
 	Tuple(char * tupData, const Relation * rel);
+	Tuple(char * tupData, const Relation * rel, int len);
 //	Tuple(const char * tupData, int start, const Relation * rel);
 	virtual ~Tuple();
 
