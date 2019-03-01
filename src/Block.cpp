@@ -220,12 +220,12 @@ void Block::parsedBlock(){
 void Block::writeBack() {
 	//如果块中的数据发生该表 change = true 则将数据写回文件
 	if (change) {
-		cout << "Block::writeBack blockId = " << blockId << " blockSize: " << blockSize << endl;
+//		cout << "Block::writeBack blockId = " << blockId << " blockSize: " << blockSize << endl;
 		string url(Dictionary::getDictionary()->getCurDatabaseName());
 		url = "data/" + url + "/";	//data/school/
 		url.append(relation->getRelationFileName());	// data/school/student.rel  data/school/teacher.rel
 		FILE * f;
-		if ((f = fopen(url.c_str(), "rb+")) == NULL) {	//测试阶段用"wb"模式写入  到时候要改成"ab"模式
+		if ((f = fopen(url.c_str(), "rb+")) == NULL) {
 			throw FileNotFoundException("can't open file : " + url);
 		}
 		fseek(f, 1024*blockSize*blockId, SEEK_SET);

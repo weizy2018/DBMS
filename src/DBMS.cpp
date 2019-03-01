@@ -496,7 +496,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		indexValue = 0;
 		blockName.append("0");
 
-		block = new Block(totalBlock, rel);
+		block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
 		totalBlock += 1;
 		rel->setTotalBlock(totalBlock);
 	} else {
@@ -510,7 +510,12 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 			block = rel->getBlock(currentDatabase, totalBlock - 1);
 		}
 	}
-	if (block->getFreespace() > Dictionary::getDictionary()->getHeadspace()) {
+	//当元组大小比块的大小还大时抛出异常，无法插入
+	if (tup->getTupLength() > (unsigned int)(Dictionary::getDictionary()->getBlockSize() * 1024)) {
+		throw InsertDataException("The tuple size is greater than the block size");
+	}
+	//剩余空间需要大于预留空间并且大于元组的长度
+	if (block->getFreespace() > Dictionary::getDictionary()->getHeadspace() && block->getFreespace() > (int)tup->getTupLength()) {
 		block->addTuple(tup->getResult(), tup->getTupLength());
 		Block * b = lru->put(blockName, block);
 		if (b) {
@@ -524,7 +529,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 		string blockId = to_string(totalBlock);
 		blockName.append(blockId);
 
-		block = new Block(totalBlock, rel);
+		block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
 
 		totalBlock += 1;
 		rel->setTotalBlock(totalBlock);

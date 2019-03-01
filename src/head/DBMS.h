@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#define LRU_SIZE				20		//定义lru能容纳的块数
+#define LRU_SIZE				1024		//定义lru能容纳的块数
 
 class DBMS {
 private:

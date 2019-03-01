@@ -18,9 +18,12 @@
 
 #include "../tools/head/BPlusTree.h"
 #include "../tools/head/Bplustree.h"
+#include "../tools/head/lru.h"
 
 #include <string.h>
 #include <iomanip>
+
+#define TEMP_LRU_SIZE	1024
 
 
 SelectSql::SelectSql(const vector<string> ws) : words(ws) {
@@ -409,13 +412,12 @@ void SelectSql::select2() {
 			break;
 		}
 	}
-//	if (flag)
-//		select2NoOr();
-//	else
-//		select2WithOr();
-	select2WithOr();
-
+	if (flag)
+		select2NoOr();
+	else
+		select2WithOr();
 }
+//双表有条件查询（没有使用索引）
 //条件中含有or连接的没有任何技巧，从头到尾做自然连接，选择符合条件的输出
 void SelectSql::select2WithOr() {
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
@@ -491,6 +493,8 @@ void SelectSql::select2WithOr() {
 	}
 	printTail();
 }
+//双表有条件查询（没有使用索引）
+//where中都是用and连接起来的，可以先选择满足table2中的条件放入临时文件中，然后再做自然连接减少比较次数
 void SelectSql::select2NoOr() {
 	vector<Condition *> table1;
 	vector<Condition *> table2;
@@ -510,16 +514,221 @@ void SelectSql::select2NoOr() {
 	unsigned int totalBlock1 = rel1->getTotalBlock();
 	unsigned int totalBlock2 = rel2->getTotalBlock();
 	if (table2.size() == 0) {
-		//对于table2没有条件限定
-
+		/*
+		 * 对于table2没有条件限定
+		 */
+		for (unsigned int i = 0; i < totalBlock1; i++) {
+			Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+			if (block1 == nullptr) {
+				block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+				DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+			}
+			vector<Tuple *> tuples1 = block1->getBlockTupls();
+			//选择满足table1条件的元组
+			vector<Tuple *> tups1;
+			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+				bool flag = true;
+				for (unsigned int k = 0; k < table1.size(); k++) {
+					//BasicType * left = (*it)->getTupleBasicType(conditions[k]->column1Index);
+					//int type = rel->getTypeName(conditions[k]->column1Index);
+					BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
+					int type = rel1->getTypeName(table1[k]->column1Index);
+					flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+					//由于都是用and连接的，所以只要有一个不满足条件就是false
+					if (!flag) {
+						break;
+					}
+				}
+				if (flag) {
+					tups1.push_back(*it);
+				}
+			}
+			//table1与table2自然连接，选择满足both中的条件
+			//这里table2没有限定条件
+			for (unsigned int j = 0; j < totalBlock2; j++) {
+				Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], j);
+				if (block2 == nullptr) {
+					block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+					DBMS::getDBMSInst()->putBlock(tableNames[1], j, block2);
+				}
+				vector<Tuple *> tups2 = block2->getBlockTupls();
+				for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+					for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+						bool flag = true;
+						for (unsigned int k = 0; k < both.size(); k++) {
+							BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
+							BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
+							int type = rel1->getTypeName(both[k]->column1Index);
+							flag = check(left, type, both[k]->symbol, right->getData());
+							if (!flag) {
+								break;
+							}
+						}
+						if (flag) {
+							(*tup1)->printTuple();
+							(*tup2)->printTuple();
+							cout << endl;
+						}
+					}
+				}
+				for (auto it = tups2.begin(); it != tups2.end(); it++) {
+					delete (*it);
+				}
+			}
+		}
 	} else {
-		//对于table2有条件限定
-		//选出table2中符合的条件放入临时文件中，然后在进行自然啊连接
+		/*
+		 * 对于table2有条件限定
+		 * 选出table2中符合的条件放入临时文件中，然后再进行自然连接
+		 */
+		unsigned int block2Cnt = 0;		//table2中满足table2限定条件的块数
+		//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName);
+		char relName[Global::MAX_RELATION_FILE_NAME];
+		char relFileName[Global::MAX_RELATION_FILE_NAME];
+		int totalProperty = rel2->getTotalProperty();
+		strcpy(relName, "temp");
+		strcpy(relFileName, "remp.tm");
+		//必须先新建一个临时文件temp.tm
+		string url("data/");
+		url.append(DBMS::getDBMSInst()->getCurrentDatabase());
+		url.append("/");
+		url.append(relFileName);
+		if (fopen(url.c_str(), "wb") == NULL) {
+			throw FileNotFoundException("can't open file : " + url);
+		}
+		Relation * tempRel = new Relation(block2Cnt, totalProperty, relName, relFileName);
+		for (int i = 0; i < totalProperty; i++) {
+			tempRel->addType(rel2->getTypeName(i), rel2->getTypeValue(i));
+			tempRel->addAttribute(rel2->getAttribute(i).c_str());
+		}
+		cout << "rel2:" << endl;
+		rel2->printRelation();
+//		cout << "tempRel:" << endl;
+//		tempRel->printRelation();
+
+		Block * tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
+		tempRel->setTotalBlock(1);
+		//定义一个lru缓冲区便于加速查找
+		LruCache<string, Block *> * tempLru = new LruCache<string, Block *>(TEMP_LRU_SIZE);
+
+		/*
+		 * table2中筛选满足条件的元组并放入临时问价中
+		 */
+		for (unsigned int i = 0; i < totalBlock2; i++) {
+			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], i);
+			if (block2 == nullptr) {
+				block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+				DBMS::getDBMSInst()->putBlock(tableNames[1], i, block2);
+			}
+			vector<Tuple *> tups2 = block2->getBlockTupls();
+			for (auto it = tups2.begin(); it != tups2.end(); it++) {
+				bool flag = true;
+				for (unsigned int k = 0; k < table2.size(); k++) {
+					BasicType * left = (*it)->getTupleBasicType(table2[k]->column1Index);
+					int type = rel2->getTypeName(table2[k]->column1Index);
+					flag = check(left, type, table2[k]->symbol, table2[k]->column2);
+					if (!flag) {
+						break;
+					}
+				}
+				if (flag) {
+					if ((int)(*it)->getTupLength() > tempBlock->getFreespace()) {
+						tempBlock->writeBack();
+						string key(relName);
+						key.append(to_string(block2Cnt));
+						Block * b = tempLru->put(key, tempBlock);
+						if (b) {
+							delete b;
+						}
+						block2Cnt++;
+						tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
+						tempRel->setTotalBlock(block2Cnt+1);
+					}
+					tempBlock->addTuple((*it)->getResult(), (*it)->getTupLength());
+				}
+			}
+			for (auto it = tups2.begin(); it != tups2.end(); it++) {
+				delete (*it);
+			}
+		}
+		tempBlock->writeBack();
+		string key(relName);
+		key.append(to_string(block2Cnt));
+		tempLru->put(key, tempBlock);
+		block2Cnt++;
+
+		cout << "tempRel:" << endl;
+		tempRel->printRelation();
+
+		cout << "printBlock" << endl;
+		tempBlock->printBlock();
+		/*
+		 * table1与刚刚产生的临时文件中的元组做自然连接
+		 */
+		for (unsigned int i = 0; i < totalBlock1; i++) {
+			Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+			if (block1 == nullptr) {
+				block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+				DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+			}
+			vector<Tuple *> tuples1 = block1->getBlockTupls();
+			//选择满足table1条件的元组
+			vector<Tuple *> tups1;
+			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+				bool flag = true;
+				for (unsigned int k = 0; k < table1.size(); k++) {
+					BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
+					int type = rel1->getTypeName(table1[k]->column1Index);
+					flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+					if (!flag) {
+						break;
+					}
+				}
+				if (flag) {
+					tups1.push_back(*it);
+				}
+			}
+			//从临时文件中获取元组
+			for (unsigned int j = 0; j < block2Cnt; j++) {
+				string key(relName);
+				key.append(to_string(j));
+				Block * block2 = nullptr;
+				try {
+					block2 = tempLru->get(key);
+				} catch (exception & e) {
+					block2 = tempRel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+				}
+				vector<Tuple *> tups2 = block2->getBlockTupls();
+				for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+					for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+						bool flag = true;
+						for (unsigned int k = 0; k < both.size(); k++) {
+							BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
+							int type = rel1->getTypeName(both[k]->column1Index);
+							BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
+							flag = check(left, type, both[k]->symbol, right->getData());
+							if (!flag) {
+								break;
+							}
+						}
+						if (flag) {
+							(*tup1)->printTuple();
+							(*tup2)->printTuple();
+							cout << endl;
+						}
+					}
+				}
+				for (auto it = tups2.begin(); it != tups2.end(); it++) {
+					delete *it;
+				}
+			}
+			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+				delete *it;
+			}
+		}
+		delete tempLru;
+		delete tempRel;	//relName和relFileName由tempRel释放
 	}
-
-
-	//bool SelectSql::check(BasicType * left, int type, string symbol, string right)
-
 }
 //单表有条件查询（使用索引）
 //select * from student where id = '123' and name = 'zhangsan';
@@ -615,7 +824,7 @@ void SelectSql::selectInIndex1(int index) {
 	}
 	printTail();
 }
-
+//判断是否满足条件
 bool SelectSql::check(BasicType * left, int type, string symbol, string right) {
 	bool flag = false;
 	if (type == Global::INTEGER) {
