@@ -26,11 +26,10 @@ public:
 		_max_size(max_size) {
 	}
 	~LruCache() {
-//		cout << "~LruCache()" << endl;
-		while(!_cache_items_list.empty()) {
-			key_value_pair_t fro = _cache_items_list.front();
-			_cache_items_list.pop_front();
-			delete fro.second;
+		for (auto it = _cache_items_list.begin(); it != _cache_items_list.end(); it++) {
+			if (it->second) {
+				delete it->second;
+			}
 		}
 	}
 

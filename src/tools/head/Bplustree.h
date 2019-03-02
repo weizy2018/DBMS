@@ -193,7 +193,8 @@ Bplustree<key, value>::~Bplustree() {
 	fclose(indexFile);
 
 	free(head);
-	delete rootNode;
+	rootNode->writeBack();
+//	delete rootNode;
 //	LRUCacheIndex<key, value>::releaseLruInst();
 	delete lruCache;
 	free(indexFileName);
@@ -225,7 +226,7 @@ void Bplustree<key, value>::init() {
 
 template<typename key, typename value>
 void Bplustree<key, value>::createIndex() {
-	cout << "Bplustree::createIndex()" << endl;
+//	cout << "Bplustree::createIndex()" << endl;
 	//添加头信息	添加一个空块 root
 	totalBlock = 1;
 	root = 0;

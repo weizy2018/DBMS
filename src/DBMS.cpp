@@ -66,6 +66,7 @@ void DBMS::releaseDBMSInst() {
 
 DBMS::~DBMS() {
 	delete lru;
+	lru = nullptr;
 	Dictionary::getDictionary()->releaseDictionary();
 	for (auto it = databases.begin(); it != databases.end(); it++) {
 		free(*it);

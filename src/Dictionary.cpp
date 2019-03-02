@@ -50,30 +50,35 @@ Dictionary::~Dictionary(){
 	if (change) {
 		writeBack();
 	}
-    while (!relations.empty()){
-    	Relation * rel = relations.back();
-    	delete rel;
-    	relations.pop_back();
-    }
+//    while (!relations.empty()){
+//    	Relation * rel = relations.back();
+//    	delete rel;
+//    	relations.pop_back();
+//    }
+	for (auto it = relations.begin(); it != relations.end(); it++) {
+		delete (*it);
+	}
+	relations.clear();
+
     for (auto it = stringIndex.begin(); it != stringIndex.end(); it++) {
     	delete(it->second);
     }
     stringIndex.clear();
 
-//    for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
-//    	delete(it->second);
-//    }
-//    intIndex.clear();
-//
-//    for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
-//    	delete(it->second);
-//    }
-//    floatIndex.clear();
-//
-//    for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
-//    	delete(it->second);
-//    }
-//    doubleIndex.clear();
+    for (auto it = intIndex.begin(); it != intIndex.end(); it++) {
+    	delete(it->second);
+    }
+    intIndex.clear();
+
+    for (auto it = floatIndex.begin(); it != floatIndex.end(); it++) {
+    	delete(it->second);
+    }
+    floatIndex.clear();
+
+    for (auto it = doubleIndex.begin(); it != doubleIndex.end(); it++) {
+    	delete(it->second);
+    }
+    doubleIndex.clear();
 }
 void Dictionary::setCurDatabaseName(const char * curDBName) {
 	curDatabaseName = curDBName;

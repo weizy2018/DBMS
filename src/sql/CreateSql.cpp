@@ -37,15 +37,12 @@ CreateSql::~CreateSql() {
 	// TODO Auto-generated destructor stub
 }
 
-void CreateSql::create() {
-
-}
 void CreateSql::execute() {
 	if (words[2] == ";") {
 		throw SqlSyntaxException("sql syntax error");
 	}
 	if (words[1] == DATABASE) {
-		cout << "create database" << endl;
+//		cout << "create database" << endl;
 		char * dbName = (char*)malloc(words[2].size() + 1);
 		strcpy(dbName, words[2].c_str());
 		int blockSize = inputBlockSize();
@@ -56,7 +53,7 @@ void CreateSql::execute() {
 		}
 
 	} else if (words[1] == TABLE) {
-		cout << "create table" << endl;
+//		cout << "create table" << endl;
 		set<string> s;
 		vector<pair<string, pair<string, int>>> attrs;
 		//必须在use database之后才能创建表

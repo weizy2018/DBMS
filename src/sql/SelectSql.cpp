@@ -741,15 +741,17 @@ void SelectSql::select2NoOr() {
 		char * relFileName = (char*)malloc(Global::MAX_RELATION_FILE_NAME);
 		int totalProperty = rel2->getTotalProperty();
 		strcpy(relName, "temp");
-		strcpy(relFileName, "remp.tm");
+		strcpy(relFileName, "temp.tm");
 		//必须先新建一个临时文件temp.tm
 		string url("data/");
 		url.append(DBMS::getDBMSInst()->getCurrentDatabase());
 		url.append("/");
 		url.append(relFileName);
-		if (fopen(url.c_str(), "wb") == NULL) {
+		FILE * f;
+		if ((f = fopen(url.c_str(), "wb")) == NULL) {
 			throw FileNotFoundException("can't open file : " + url);
 		}
+		fclose(f);
 		Relation * tempRel = new Relation(block2Cnt, totalProperty, relName, relFileName);
 		for (int i = 0; i < totalProperty; i++) {
 			tempRel->addType(rel2->getTypeName(i), rel2->getTypeValue(i));
@@ -762,7 +764,7 @@ void SelectSql::select2NoOr() {
 		LruCache<string, Block *> * tempLru = new LruCache<string, Block *>(TEMP_LRU_SIZE);
 
 		/*
-		 * table2中筛选满足条件的元组并放入临时问价中
+		 * table2中筛选满足条件的元组并放入临时文件中
 		 */
 		int index2 = findIndex(table2);
 		if (index2 != -1) {
@@ -825,118 +827,283 @@ void SelectSql::select2NoOr() {
 					block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *it);
 					DBMS::getDBMSInst()->putBlock(tableNames[1], *it, block2);
 				}
-
-			}
-		} else {
-
-		}
-
-		for (unsigned int i = 0; i < totalBlock2; i++) {
-			Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1], i);
-			if (block2 == nullptr) {
-				block2 = rel2->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
-				DBMS::getDBMSInst()->putBlock(tableNames[1], i, block2);
-			}
-			vector<Tuple *> tups2 = block2->getBlockTupls();
-			for (auto it = tups2.begin(); it != tups2.end(); it++) {
-				bool flag = true;
-				for (unsigned int k = 0; k < table2.size(); k++) {
-					BasicType * left = (*it)->getTupleBasicType(table2[k]->column1Index);
-					int type = rel2->getTypeName(table2[k]->column1Index);
-					flag = check(left, type, table2[k]->symbol, table2[k]->column2);
-					if (!flag) {
-						break;
-					}
-				}
-				if (flag) {
-					if ((int)(*it)->getTupLength() > tempBlock->getFreespace()) {
-						tempBlock->writeBack();
-						string key(relName);
-						key.append(to_string(block2Cnt));
-						Block * b = tempLru->put(key, tempBlock);
-						if (b) {
-							delete b;
+				vector<Tuple *> tuples2 = block2->getBlockTupls();
+				for (auto tup2 = tuples2.begin(); tup2 != tuples2.end(); tup2++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table2.size(); k++) {
+						BasicType * left = (*tup2)->getTupleBasicType(table2[k]->column1Index);
+						int type = rel2->getTypeName(table2[k]->column1Index);
+						flag = check(left, type, table2[k]->symbol, table2[k]->column2);
+						if (!flag) {
+							break;
 						}
-						block2Cnt++;
-						tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
-						tempRel->setTotalBlock(block2Cnt+1);
 					}
-					tempBlock->addTuple((*it)->getResult(), (*it)->getTupLength());
-				}
-			}
-			for (auto it = tups2.begin(); it != tups2.end(); it++) {
-				delete (*it);
-			}
-		}
-		tempBlock->writeBack();
-		string key(relName);
-		key.append(to_string(block2Cnt));
-		tempLru->put(key, tempBlock);
-		block2Cnt++;						//不用质疑、不用质疑、不用质疑
-		/*
-		 * table1与刚刚产生的临时文件中的元组做自然连接
-		 */
-		for (unsigned int i = 0; i < totalBlock1; i++) {
-			Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
-			if (block1 == nullptr) {
-				block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
-				DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
-			}
-			vector<Tuple *> tuples1 = block1->getBlockTupls();
-			//选择满足table1条件的元组
-			vector<Tuple *> tups1;
-			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
-				bool flag = true;
-				for (unsigned int k = 0; k < table1.size(); k++) {
-					BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
-					int type = rel1->getTypeName(table1[k]->column1Index);
-					flag = check(left, type, table1[k]->symbol, table1[k]->column2);
-					if (!flag) {
-						break;
+					if (flag) {
+						if ((int)(*tup2)->getTupLength() > tempBlock->getFreespace()) {
+							tempBlock->writeBack();
+							string key(relName);
+							key.append(to_string(block2Cnt));
+							Block * b = tempLru->put(key, tempBlock);
+							if (b) {
+								delete b;
+							}
+							block2Cnt++;
+							tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
+							tempRel->setTotalBlock(block2Cnt+1);
+						}
+						tempBlock->addTuple((*tup2)->getResult(), (*tup2)->getTupLength());
 					}
 				}
-				if (flag) {
-					tups1.push_back(*it);
+				for (auto tup = tuples2.begin(); tup != tuples2.end(); tup++) {
+					delete (*tup);
 				}
 			}
-			//从临时文件中获取元组
-			for (unsigned int j = 0; j < block2Cnt; j++) {
-				string key(relName);
-				key.append(to_string(j));
-				Block * block2 = nullptr;
-				try {
-					block2 = tempLru->get(key);
-				} catch (exception & e) {
-					block2 = tempRel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+			tempBlock->writeBack();
+			string key(relName);
+			key.append(to_string(block2Cnt));
+			tempLru->put(key, tempBlock);
+			block2Cnt++;						//不用质疑、不用质疑、不用质疑
+		} else {
+			/*
+			 * table2不能使用索引查找
+			 */
+			for (unsigned int i = 0; i < totalBlock2; i++) {
+				Block * block2 = DBMS::getDBMSInst()->getBlock(tableNames[1],
+						i);
+				if (block2 == nullptr) {
+					block2 = rel2->getBlock(
+							DBMS::getDBMSInst()->getCurrentDatabase(), i);
+					DBMS::getDBMSInst()->putBlock(tableNames[1], i, block2);
 				}
 				vector<Tuple *> tups2 = block2->getBlockTupls();
-				for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
-					for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
-						bool flag = true;
-						for (unsigned int k = 0; k < both.size(); k++) {
-							BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
-							int type = rel1->getTypeName(both[k]->column1Index);
-							BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
-							flag = check(left, type, both[k]->symbol, right->getData());
-							if (!flag) {
-								break;
+				for (auto it = tups2.begin(); it != tups2.end(); it++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table2.size(); k++) {
+						BasicType * left = (*it)->getTupleBasicType(
+								table2[k]->column1Index);
+						int type = rel2->getTypeName(table2[k]->column1Index);
+						flag = check(left, type, table2[k]->symbol,
+								table2[k]->column2);
+						if (!flag) {
+							break;
+						}
+					}
+					if (flag) {
+						if ((int) (*it)->getTupLength()
+								> tempBlock->getFreespace()) {
+							tempBlock->writeBack();
+							string key(relName);
+							key.append(to_string(block2Cnt));
+							Block * b = tempLru->put(key, tempBlock);
+							if (b) {
+								delete b;
 							}
+							block2Cnt++;
+							tempBlock = new Block(block2Cnt, tempRel, Dictionary::getDictionary()->getBlockSize());
+							tempRel->setTotalBlock(block2Cnt + 1);
 						}
-						if (flag) {
-							(*tup1)->printTuple();
-							(*tup2)->printTuple();
-							cout << endl;
-						}
+						tempBlock->addTuple((*it)->getResult(),
+								(*it)->getTupLength());
 					}
 				}
 				for (auto it = tups2.begin(); it != tups2.end(); it++) {
+					delete (*it);
+				}
+			}
+			tempBlock->writeBack();
+			string key(relName);
+			key.append(to_string(block2Cnt));
+			tempLru->put(key, tempBlock);
+			block2Cnt++;						//不用质疑、不用质疑、不用质疑
+		}
+		/*
+		 * table1与刚刚产生的临时文件中的元组做自然连接
+		 */
+		int index1 = findIndex(table1);
+		if (index1 != -1) {
+			/*
+			 * table1能使用索引查询
+			 */
+			set<unsigned long int> blocks1Id;
+			int type = rel1->getTypeName(table1[index1]->column1Index);
+			if (type == Global::CHAR || type == Global::VARCHAR) {
+				BPlusTree<string, unsigned long int> * stringTree =
+						Dictionary::getDictionary()->getStringIndex(table1[index1]->table1, table1[index1]->column1);
+				blocks1Id = stringTree->get(table1[index1]->column2);
+
+			} else if (type == Global::INTEGER) {
+				Bplustree<int, unsigned long int> * intTree =
+						Dictionary::getDictionary()->getIntIndex(table1[index1]->table1, table1[index1]->column1);
+				int key;
+				try {
+					key = stoi(table1[index1]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table1[index1]->column2);
+					error.append("\' to \'int\'");
+					throw Error(error);
+				}
+				blocks1Id = intTree->get(key);
+
+			} else if (type == Global::FLOAT) {
+				Bplustree<float, unsigned long int> * floatTree =
+						Dictionary::getDictionary()->getFloatIndex(table1[index1]->table1, table1[index1]->column1);
+				float key;
+				try {
+					key = stof(table1[index1]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table1[index1]->column2);
+					error.append("\' to \'float\'");
+					throw Error(error);
+				}
+				blocks1Id = floatTree->get(key);
+
+			} else if (type == Global::DOUBLE) {
+				Bplustree<double, unsigned long int> * doubleTree =
+						Dictionary::getDictionary()->getDoubleIndex(table1[index1]->table1, table1[index1]->column1);
+				double key;
+				try {
+					key = stod(table1[index1]->column2);
+				} catch (invalid_argument & e) {
+					string error("Cannot convert \'");
+					error.append(table1[index1]->column2);
+					error.append("\' to \'double\'");
+					throw Error(error);
+				}
+				blocks1Id = doubleTree->get(key);
+			}
+			for (auto id = blocks1Id.begin(); id != blocks1Id.end(); id++) {
+				Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], *id);
+				if (block1 == nullptr) {
+					block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *id);
+					DBMS::getDBMSInst()->putBlock(tableNames[0], *id, block1);
+				}
+				vector<Tuple *> tuples1 = block1->getBlockTupls();
+				//选择满足table1条件的元组
+				vector<Tuple *> tups1;
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table1.size(); k++) {
+						BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
+						int type = rel1->getTypeName(table1[k]->column1Index);
+						flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+						if (!flag) {
+							break;
+						}
+					}
+					if (flag) {
+						tups1.push_back(*it);
+					}
+				}
+				for (unsigned int j = 0; j < block2Cnt; j++) {
+					string key(relName);
+					key.append(to_string(j));
+					Block * block2 = nullptr;
+					try {
+						block2 = tempLru->get(key);
+					} catch (exception & e) {
+						block2 = tempRel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+					}
+					vector<Tuple *> tups2 = block2->getBlockTupls();
+					for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+						for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+							bool flag = true;
+							for (unsigned int k = 0; k < both.size(); k++) {
+								BasicType * left = (*tup1)->getTupleBasicType(both[k]->column1Index);
+								int type = rel1->getTypeName(both[k]->column1Index);
+								BasicType * right = (*tup2)->getTupleBasicType(both[k]->column2Index);
+								flag = check(left, type, both[k]->symbol, right->getData());
+								if (!flag) {
+									break;
+								}
+							}
+							if (flag) {
+								(*tup1)->printTuple();
+								(*tup2)->printTuple();
+								cout << endl;
+							}
+						}
+					}
+					for (auto it = tups2.begin(); it != tups2.end(); it++) {
+						delete *it;
+					}
+				}
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+					delete (*it);
+				}
+			}
+		} else {
+			/*
+			 * table1不能使用索引查询
+			 */
+			for (unsigned int i = 0; i < totalBlock1; i++) {
+				Block * block1 = DBMS::getDBMSInst()->getBlock(tableNames[0], i);
+				if (block1 == nullptr) {
+					block1 = rel1->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+					DBMS::getDBMSInst()->putBlock(tableNames[0], i, block1);
+				}
+				vector<Tuple *> tuples1 = block1->getBlockTupls();
+				//选择满足table1条件的元组
+				vector<Tuple *> tups1;
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
+					bool flag = true;
+					for (unsigned int k = 0; k < table1.size(); k++) {
+						BasicType * left = (*it)->getTupleBasicType(table1[k]->column1Index);
+						int type = rel1->getTypeName(table1[k]->column1Index);
+						flag = check(left, type, table1[k]->symbol, table1[k]->column2);
+						if (!flag) {
+							break;
+						}
+					}
+					if (flag) {
+						tups1.push_back(*it);
+					}
+				}
+				//从临时文件中获取元组
+				for (unsigned int j = 0; j < block2Cnt; j++) {
+					string key(relName);
+					key.append(to_string(j));
+					Block * block2 = nullptr;
+					try {
+						block2 = tempLru->get(key);
+					} catch (exception & e) {
+						block2 = tempRel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), j);
+					}
+					vector<Tuple *> tups2 = block2->getBlockTupls();
+					for (auto tup1 = tups1.begin(); tup1 != tups1.end(); tup1++) {
+						for (auto tup2 = tups2.begin(); tup2 != tups2.end(); tup2++) {
+							bool flag = true;
+							for (unsigned int k = 0; k < both.size(); k++) {
+								BasicType * left = (*tup1)->getTupleBasicType(
+										both[k]->column1Index);
+								int type = rel1->getTypeName(
+										both[k]->column1Index);
+								BasicType * right = (*tup2)->getTupleBasicType(
+										both[k]->column2Index);
+								flag = check(left, type, both[k]->symbol,
+										right->getData());
+								if (!flag) {
+									break;
+								}
+							}
+							if (flag) {
+								(*tup1)->printTuple();
+								(*tup2)->printTuple();
+								cout << endl;
+							}
+						}
+					}
+					for (auto it = tups2.begin(); it != tups2.end(); it++) {
+						delete *it;
+					}
+				}
+				for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
 					delete *it;
 				}
 			}
-			for (auto it = tuples1.begin(); it != tuples1.end(); it++) {
-				delete *it;
-			}
 		}
+
 		delete tempLru;
 		delete tempRel;	//relName和relFileName由tempRel释放
 	}

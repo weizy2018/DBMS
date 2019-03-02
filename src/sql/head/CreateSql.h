@@ -10,10 +10,8 @@
 
 
 #include "ExecuteStatus.h"
-#include <iostream>
+#include <string>
 #include <vector>
-
-using namespace std;
 
 using namespace std;
 
@@ -26,7 +24,6 @@ public:
 	CreateSql(const vector<string> words);
 	virtual ~CreateSql();
 public:
-	void create();
 	void execute();
 private:
 	int inputBlockSize();

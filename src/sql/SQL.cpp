@@ -26,6 +26,7 @@
 #include "head/SelectSql.h"
 #include "head/ShowSql.h"
 #include "head/DescSql.h"
+#include "head/UpdateSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -166,11 +167,10 @@ void SQL::execute() {
 		executeStatus = new SelectSql(words);
 
 	} else if (words[0] == INSERT) {
-		cout << "insert" << endl;
 		executeStatus = new InsertSql(words);
 
 	} else if (words[0] == UPDATE) {
-		cout << "update" << endl;
+		executeStatus = new UpdateSql(words);
 
 	} else if (words[0] == DELETE) {
 		cout << "delete" << endl;
