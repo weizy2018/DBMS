@@ -254,30 +254,63 @@ void UpdateSql::update(Relation * rel) {
 			}
 			blocksId = doubleTree->get(key);
 		}
+		vector<unsigned long int> ids;
+		unsigned int lastBlockId = rel->getTotalBlock() - 1;
+		bool hasLastBlock = false;
 		for (auto it = blocksId.begin(); it != blocksId.end(); it++) {
+			if ((*it) == lastBlockId) {
+				hasLastBlock = true;
+			} else {
+				ids.push_back(*it);
+			}
+		}
+		if (hasLastBlock) {
+			Block * block = DBMS::getDBMSInst()->getBlock(words[1], lastBlockId);
+			if (block == nullptr) {
+				block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), lastBlockId);
+				DBMS::getDBMSInst()->putBlock(words[1], lastBlockId, block);
+			}
+			updateBlock(block, rel, true);
+		}
+		for (auto it = ids.begin(); it != ids.end(); it++) {
 			Block * block = DBMS::getDBMSInst()->getBlock(words[1], *it);
 			if (block == nullptr) {
-				block = rel->getBlock(DBMS::getDBMSInst()->currentDatabase, *it);
+				block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), *it);
 				DBMS::getDBMSInst()->putBlock(words[1], *it, block);
 			}
-
+			updateBlock(block, rel, false);
 		}
-
-
 	} else {
+		unsigned int totalBlock = rel->getTotalBlock();
+		unsigned int lastBlockId = totalBlock - 1;
+		Block * lastBlock = DBMS::getDBMSInst()->getBlock(words[1], lastBlockId);
+		if (lastBlock == nullptr) {
+			lastBlock = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), lastBlockId);
+			DBMS::getDBMSInst()->putBlock(words[1], lastBlockId, lastBlock);
+		}
+		updateBlock(lastBlock, rel, true);
 
+		for (unsigned int i = 0; i < totalBlock - 1; i++) {
+			Block * block = DBMS::getDBMSInst()->getBlock(words[1], i);
+			if (block == nullptr) {
+				block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), i);
+				DBMS::getDBMSInst()->putBlock(words[1], i, block);
+			}
+			updateBlock(block, rel, false);
+		}
 	}
 }
+//还需要考虑如果更新的列已经创建了索引的情况
 void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 	vector<Tuple *> tuples = block->getBlockTupls();
 	vector<Tuple *> updatedTuples;		//更新后的元组
+	vector<bool> updatedFlag;
 	vector<Tuple *> removedTuples;		//被更新的元组
 	bool updateFlag = false;			//确定该块是否需要更新的标志
 	for (auto tup = tuples.begin(); tup != tuples.end(); tup++) {
 		bool flag = true;
 		for (unsigned int k = 0; k < conditions.size(); k++) {
-			BasicType * left = (*tup)->getTupleBasicType(
-					conditions[k]->leftIndex);
+			BasicType * left = (*tup)->getTupleBasicType(conditions[k]->leftIndex);
 			int type = rel->getTypeName(conditions[k]->leftIndex);
 			bool result = check(left, type, conditions[k]->symbol,	conditions[k]->right);
 			if (joins[k] == "or") {
@@ -297,9 +330,8 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 				if (exp != -1) {
 					/*
 					 * 该元素在需要更新的列中
-					 * 更新
 					 */
-					updateFlag = true;
+					updateFlag = true;				//更新块需要更新的标志
 					if (type == Global::INTEGER) {
 						try {
 							int value = stoi(exprs[exp]->right);
@@ -331,26 +363,22 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 							throw Error(error);
 						}
 					} else if (type == Global::CHAR) {
-						if (exprs[exp]->right.length()
-								> (unsigned int) rel->getTypeValue(t)) {
+						if (exprs[exp]->right.length() > (unsigned int) rel->getTypeValue(t)) {
 							string error("\'");
 							error.append(exprs[exp]->right);
 							error.append("\' exceeds the defined length");
 							throw Error(error);
 						} else {
-							tu->addChar(exprs[exp]->right.c_str(),
-									rel->getTypeValue(t));
+							tu->addChar(exprs[exp]->right.c_str(), rel->getTypeValue(t));
 						}
 					} else if (type == Global::VARCHAR) {
-						if (exprs[exp]->right.length()
-								> (unsigned int) rel->getTypeValue(t)) {
+						if (exprs[exp]->right.length() > (unsigned int) rel->getTypeValue(t)) {
 							string error("\'");
 							error.append(exprs[exp]->right);
 							error.append("\' exceeds the defined length");
 							throw Error(error);
 						} else {
-							tu->addVarchar(exprs[exp]->right.c_str(),
-									exprs[exp]->right.length());
+							tu->addVarchar(exprs[exp]->right.c_str(), exprs[exp]->right.length());
 						}
 					}
 				} else {
@@ -359,13 +387,13 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 					 */
 					BasicType * basic = (*tup)->getTupleBasicType(t);
 					if (type == Global::INTEGER) {
-						int * value = basic->getData();
+						int * value = (int*)basic->getData();
 						tu->addInteger(*value);
 					} else if (type == Global::FLOAT) {
-						float * value = basic->getData();
+						float * value = (float*)basic->getData();
 						tu->addFload(*value);
 					} else if (type == Global::DOUBLE) {
-						double * value = basic->getData();
+						double * value = (double*)basic->getData();
 						tu->addDouble(*value);
 					} else if (type == Global::CHAR) {
 						char * value = basic->getData();
@@ -376,18 +404,20 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 					}
 				}
 			} //for (int t = 0; t < totalProperty; t++)新建一个元组
+			tu->processData();
 			updatedTuples.push_back(tu);
-			removedTuples.push_back(*tup);
+			removedTuples.push_back(*tup);			//把原来的元组放入待删除的列表中
+			updatedFlag.push_back(true);
 		} else {
 			/*
 			 * 该元素不在更新的列中，把原有内容复制到新的元组中
 			 */
 			updatedTuples.push_back(*tup);
+			updatedFlag.push_back(false);
 		}
 
 	} //for (auto tup = tuples.begin(); tup != tuples.end(); tup++)
 	if (updateFlag) {
-		//
 		/*
 		 * 该块需要更新
 		 * 1)跟新后该块还能放完
@@ -396,10 +426,61 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 		 * 如果是最后一块更新后超出了块的大小则需要新建一块
 		 * 如果不是最后一块更新后超出了块的大小，先考虑最后一块能不能放下，如果不能新建一块
 		 */
+		block->clearBlock();
 
+		for (unsigned int tups = 0; tups < updatedTuples.size(); tups++) {
+			if (block->getFreespace() > (int)updatedTuples[tups]->getTupLength()) {
+				block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
+			} else {
+				if (lastBlock) {		//如果满的这块是最后一块，则需要新建一块
+					block->writeBack();						//先把之前放满的那块放入磁盘中,然后再新建一块
+					int totalBlock = rel->getTotalBlock();
+					block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
+					block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
+					//放入LRU
+					DBMS::getDBMSInst()->putBlock(rel->getRelationName(), block->getBlockId(), block);
 
+					totalBlock += 1;
+					rel->setTotalBlock(totalBlock);
+					Dictionary::getDictionary()->setChange(true);
+				} else {
+					//如果满的这块不是最后一块，则先看最后一块是否还能放入，不能的话再新建一块
+					int lastBlockId = rel->getTotalBlock() - 1;
+					//Block * block = DBMS::getDBMSInst()->getBlock(words[1], *it);
+					block = DBMS::getDBMSInst()->getBlock(rel->getRelationName(), lastBlockId);
+					if (block == nullptr) {
+						block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), lastBlockId);
+						DBMS::getDBMSInst()->putBlock(rel->getRelationName(), lastBlockId, block);
+					}
+					lastBlock = true;	//标志以后放入的是放在最后一块中
+					//如果最后一块也放不下了，需要新建一块
+					if (block->getFreespace() > (int)updatedTuples[tups]->getTupLength()) {
+						//能放下
+						block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
+					} else {
+						//不能放下
+						block->writeBack();						//先把之前放满的那块放入磁盘中,然后再新建一块
+						int totalBlock = rel->getTotalBlock();
+						block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
+						block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
+						//放入LRU
+						DBMS::getDBMSInst()->putBlock(rel->getRelationName(), block->getBlockId(), block);
+
+						totalBlock += 1;
+						rel->setTotalBlock(totalBlock);
+						Dictionary::getDictionary()->setChange(true);
+					}
+				}
+			}
+		}
 	}
 	//删除tuples
+	for (auto it = updatedTuples.begin(); it != updatedTuples.end(); it++) {
+		delete (*it);
+	}
+	for (auto it = removedTuples.begin(); it != removedTuples.end(); it++) {
+		delete (*it);
+	}
 }
 int UpdateSql::checkIndex() {
 	for (auto it = joins.begin(); it != joins.end(); it++) {

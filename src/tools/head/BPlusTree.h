@@ -310,13 +310,70 @@ void BPlusTree<key, value>::put(key k, value v) {
  */
 template<typename key, typename value>
 void BPlusTree<key, value>::remove(key k, value v) {
+	/*
+	 * TreeNode<key, value> * getTreeNode(unsigned long int self);
+	 * long int getNext();
+	 */
 	TreeNode<key, value> * leafNode = getLeafNode(k);
-	try {
-		leafNode->delData(k, v);
-	} catch (exception & e) {
-		cout << "KeyNotFoundException:key " << k << " not found !" << endl;
+
+//	unsigned int index = 0;
+//	while(index < count && getKey(index) != k) {
+//		index++;
+//	}
+//	//没找到
+//	if (index >= count) {
+//		throw KeyNotFoundException(k);
+//	}
+//
+//	while (index < count && getKey(index) == k && getValue(index) != v) {
+//		index++;
+//	}
+	bool flag = false;
+	while (true) {
+		unsigned int index = 0;
+		unsigned int count = leafNode->getCount();
+		while (index < count && leafNode->getKey(index) != k) {
+			index++;
+		}
+		//说明该结点中没有key值为K的元素，后面也不可能有了，直接返回
+		if (index >= count) {
+			return;
+		} else {
+			//从该结点中查找key值为k的，比较value是否为v
+			while (index < count && leafNode->getKey(index) == k) {
+				value va = leafNode->getValue(index);
+				if (va == v) {
+					flag = true;
+					break;
+				}
+				index++;
+			}
+			//找到了，跳出最外层循环
+			if (flag) {
+				break;
+			}
+			//如果index == count 说明下一个结点还可能有key为k的出现
+			if (index == count) {
+				long int nextId = leafNode->getNext();
+				if (nextId == -1) {
+					break;
+				} else {
+					leafNode = getTreeNode(nextId);
+				}
+			}
+		}
+	}
+	if (flag) {
+		try {
+			leafNode->delData(k, v);
+		} catch (exception & e) {
+	//		cout << "KeyNotFoundException:key " << k << " not found !" << endl;
+			return;
+		}
+	} else {
 		return;
 	}
+
 	int minLeafData = (int)((treeNodeMaxSize - 1)*1.0 / 2 + 0.5);	//向上取整 等价于ceil((treeNodeMaxSize-1))/2
 	if (leafNode->getCount() < minLeafData) {
 		handleDel(leafNode);
@@ -1467,6 +1524,11 @@ void TreeNode<key, value>::delData(key k, value v) {
 	if (index >= count) {
 		throw KeyNotFoundException(k);
 	}
+
+	while (index < count && getKey(index) == k && getValue(index) != v) {
+		index++;
+	}
+
 	int len = keyLen + valueLen;
 	if (index == (count - 1)) {
 		count--;

@@ -77,6 +77,19 @@ Block::~Block() {
 //	cout << "~Block()" << endl;
 }
 
+void Block::clearBlock() {
+	delete freeSpace;
+	position_start start = sizeof(blockId) + sizeof(blockSize) + sizeof(freeSpace) + sizeof(tups);
+	freeSpace = new Position(start, 1024*blockSize - start);
+	tups = 0;
+	for (auto it = pos.begin(); it != pos.end(); it++) {
+		delete (*it);
+	}
+	pos.clear();
+	change = true;
+	initBlock();
+}
+
 void Block::initBlock(){
 	char * b = block;
 	int index = 0;

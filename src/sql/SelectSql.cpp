@@ -19,6 +19,7 @@
 #include "../tools/head/BPlusTree.h"
 #include "../tools/head/Bplustree.h"
 #include "../tools/head/lru.h"
+#include "../tools/head/CalTime.h"
 
 #include <string.h>
 #include <iomanip>
@@ -315,6 +316,9 @@ void SelectSql::checkCondition() {
 //tableNames.size() == 1
 //单表无条件查询
 void SelectSql::selectAll() {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames.at(0).c_str());
 
 	vector<Relation *> rels;
@@ -333,17 +337,29 @@ void SelectSql::selectAll() {
 			Tuple * tup = tuples[i];
 			tup->printTuple();
 			cout << endl;
+			CalTime::getCalTimeInst()->addRow();
 		}
 		//释放内存
 		for (auto it = tuples.begin(); it != tuples.end(); it++) {
 			delete (*it);
 		}
 	}
+//	int b = 0;
+//	for (int i = 0; i < 2000000000; i++) {
+//		b++;
+//	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //tableNames.size() == 2	最多只能支持两个表联立了
 //双表无条件查询
 void SelectSql::selectAll2() {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
 
@@ -373,6 +389,7 @@ void SelectSql::selectAll2() {
 					(*it1)->printTuple();
 					(*it2)->printTuple();
 					cout << endl;
+					CalTime::getCalTimeInst()->addRow();
 				}
 			}
 			for (auto it = tuples2.begin(); it != tuples2.end(); it++) {
@@ -385,10 +402,17 @@ void SelectSql::selectAll2() {
 		}
 	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //条件语句中没有优先级之分(没有括号),同意从左到右依次运算
 //单表有条件查询（没有使用索引）
 void SelectSql::select1() {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 
 	vector<Relation *> rels;
@@ -418,6 +442,7 @@ void SelectSql::select1() {
 			if (flag) {
 				(*it)->printTuple();
 				cout << endl;
+				CalTime::getCalTimeInst()->addRow();
 			}
 
 		}
@@ -427,6 +452,10 @@ void SelectSql::select1() {
 		}
 	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //select * from table1, table2 where table1.id = table2.id and table1.col1 > 100 and/or table2.col2 < 200;
 //双表有条件查询（没有使用索引）
@@ -447,6 +476,9 @@ void SelectSql::select2() {
 //双表有条件查询（没有使用索引）
 //条件中含有or连接的没有任何技巧，从头到尾做自然连接，选择符合条件的输出
 void SelectSql::select2WithOr() {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	Relation * rel1 = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	Relation * rel2 = Dictionary::getDictionary()->getRelation(tableNames[1].c_str());
 
@@ -508,6 +540,7 @@ void SelectSql::select2WithOr() {
 						tuples1[u]->printTuple();
 						tuples2[v]->printTuple();
 						cout << endl;
+						CalTime::getCalTimeInst()->addRow();
 					}
 				}
 			}
@@ -520,10 +553,17 @@ void SelectSql::select2WithOr() {
 		}
 	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //双表有条件查询（没有使用索引）
 //where中都是用and连接起来的，可以先选择满足table2中的条件放入临时文件中，然后再做自然连接减少比较次数
 void SelectSql::select2NoOr() {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	vector<Condition *> table1;
 	vector<Condition *> table2;
 	vector<Condition *> both;
@@ -653,6 +693,7 @@ void SelectSql::select2NoOr() {
 								(*tup1)->printTuple();
 								(*tup2)->printTuple();
 								cout << endl;
+								CalTime::getCalTimeInst()->addRow();
 							}
 						}
 					}
@@ -717,6 +758,7 @@ void SelectSql::select2NoOr() {
 								(*tup1)->printTuple();
 								(*tup2)->printTuple();
 								cout << endl;
+								CalTime::getCalTimeInst()->addRow();
 							}
 						}
 					}
@@ -1022,6 +1064,7 @@ void SelectSql::select2NoOr() {
 								(*tup1)->printTuple();
 								(*tup2)->printTuple();
 								cout << endl;
+								CalTime::getCalTimeInst()->addRow();
 							}
 						}
 					}
@@ -1091,6 +1134,7 @@ void SelectSql::select2NoOr() {
 								(*tup1)->printTuple();
 								(*tup2)->printTuple();
 								cout << endl;
+								CalTime::getCalTimeInst()->addRow();
 							}
 						}
 					}
@@ -1108,12 +1152,18 @@ void SelectSql::select2NoOr() {
 		delete tempRel;	//relName和relFileName由tempRel释放
 	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 
 //单表有条件查询（使用索引）
 //select * from student where id = '123' and name = 'zhangsan';
 void SelectSql::selectInIndex1(int index) {
-//	cout << "search in index" << endl;
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	Relation * rel = Dictionary::getDictionary()->getRelation(tableNames[0].c_str());
 	int type = rel->getTypeName(conditions[index]->column1Index);
 
@@ -1195,6 +1245,7 @@ void SelectSql::selectInIndex1(int index) {
 			if (flag) {
 				(*tup)->printTuple();
 				cout << endl;
+				CalTime::getCalTimeInst()->addRow();
 			}
 		}
 		//释放内存
@@ -1203,6 +1254,10 @@ void SelectSql::selectInIndex1(int index) {
 		}
 	}
 	printTail();
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << CalTime::getCalTimeInst()->getRow() << " rows in set (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //判断是否满足条件
 bool SelectSql::check(BasicType * left, int type, string symbol, string right) {

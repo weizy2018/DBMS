@@ -89,6 +89,8 @@ public:
     void writeBack();
 public:
     int getTups();
+public:
+    void clearBlock();									//清除除块头外的信息（所有元组）
 };
 
 class Position {
