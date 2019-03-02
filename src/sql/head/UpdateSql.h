@@ -33,6 +33,15 @@ private:
 	void checkWhere(Relation * rel);
 
 private:
+	void update(Relation * rel);
+	void updateBlock(Block * block, Relation * rel, bool lastBlock);
+
+	int checkIndex();
+	int findIndex();
+	bool check(BasicType * left, int type, string symbol, string right);
+	int isInExpres(int index);
+
+private:
 	vector<string> words;
 
 	vector<Expression *> exprs;

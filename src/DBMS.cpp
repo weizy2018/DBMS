@@ -478,7 +478,7 @@ void DBMS::insert(const char * tableName, vector<string> values) {
 				error.append(values.at(i));
 				error.append("\' exceeds the defined length");
 			} else {
-				tup->addVarchar(values.at(i).c_str(), rel->getTypeValue(i));
+				tup->addVarchar(values.at(i).c_str(), values.at(i).length());
 			}
 		}
 	}
