@@ -310,24 +310,9 @@ void BPlusTree<key, value>::put(key k, value v) {
  */
 template<typename key, typename value>
 void BPlusTree<key, value>::remove(key k, value v) {
-	/*
-	 * TreeNode<key, value> * getTreeNode(unsigned long int self);
-	 * long int getNext();
-	 */
+
 	TreeNode<key, value> * leafNode = getLeafNode(k);
 
-//	unsigned int index = 0;
-//	while(index < count && getKey(index) != k) {
-//		index++;
-//	}
-//	//没找到
-//	if (index >= count) {
-//		throw KeyNotFoundException(k);
-//	}
-//
-//	while (index < count && getKey(index) == k && getValue(index) != v) {
-//		index++;
-//	}
 	bool flag = false;
 	while (true) {
 		unsigned int index = 0;
@@ -733,7 +718,7 @@ void BPlusTree<key, value>::mergeRight(TreeNode<key, value> * rightNode, TreeNod
 					parent->setCount(lastNode->getCount());
 					parent->setChange(true);
 					parent->writeBack();
-					TreeNode<key, value> * t = lruCache->getLruCache()->put(parent->getSelf(), parent);
+					TreeNode<key, value> * t = lruCache->put(parent->getSelf(), parent);
 					if (t) {
 						delete t;
 					}

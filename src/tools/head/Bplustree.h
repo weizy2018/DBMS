@@ -306,12 +306,57 @@ void Bplustree<key, value>::put(key k, value v) {
 template<typename key, typename value>
 void Bplustree<key, value>::remove(key k, value v) {
 	Treenode<key, value> * leafNode = getLeafNode(k);
-	try {
-		leafNode->delData(k, v);
-	} catch (exception & e) {
-		cout << "KeyNotFoundException:key " << k << " not found !" << endl;
+//	try {
+//		leafNode->delData(k, v);
+//	} catch (exception & e) {
+//		cout << "KeyNotFoundException:key " << k << " not found !" << endl;
+//		return;
+//	}
+	bool flag = false;
+	while (true) {
+		unsigned int index = 0;
+		unsigned int count = leafNode->getCount();
+		while (index < count && leafNode->getKey(index) != k) {
+			index++;
+		}
+		//说明该结点中没有key值为K的元素，后面也不可能有了，直接返回
+		if (index >= count) {
+			return;
+		} else {
+			//从该结点中查找key值为k的，比较value是否为v
+			while (index < count && leafNode->getKey(index) == k) {
+				value va = leafNode->getValue(index);
+				if (va == v) {
+					flag = true;
+					break;
+				}
+				index++;
+			}
+			//找到了，跳出最外层循环
+			if (flag) {
+				break;
+			}
+			//如果index == count 说明下一个结点还可能有key为k的出现
+			if (index == count) {
+				long int nextId = leafNode->getNext();
+				if (nextId == -1) {
+					break;
+				} else {
+					leafNode = getTreeNode(nextId);
+				}
+			}
+		}
+	}
+	if (flag) {
+		try {
+			leafNode->delData(k, v);
+		} catch (exception & e) {
+			return;
+		}
+	} else {
 		return;
 	}
+
 	int minLeafData = (int)((treeNodeMaxSize - 1)*1.0 / 2 + 0.5);	//向上取整 等价于ceil((treeNodeMaxSize-1))/2
 	if (leafNode->getCount() < minLeafData) {
 		handleDel(leafNode);
@@ -671,7 +716,7 @@ void Bplustree<key, value>::mergeRight(Treenode<key, value> * rightNode, Treenod
 					parent->setCount(lastNode->getCount());
 					parent->setChange(true);
 					parent->writeBack();
-					Treenode<key, value> * t = lruCache->getLruCache()->put(parent->getSelf(), parent);
+					Treenode<key, value> * t = lruCache->put(parent->getSelf(), parent);
 					if (t) {
 						delete t;
 					}
@@ -1445,8 +1490,13 @@ void Treenode<key, value>::delData(key k, value v) {
 	}
 	//没找到
 	if (index >= count) {
-		throw KeyNotFoundException(k);
+		throw KeyNotFoundException(to_string(k));
 	}
+
+	while (index < count && getKey(index) == k && getValue(index) != v) {
+		index++;
+	}
+
 	int len = keyLen + valueLen;
 	if (index == (count - 1)) {
 		count--;
@@ -1494,15 +1544,15 @@ key Treenode<key, value>::delInnerData(value v) {
 	} else {
 		kk = d0;
 	}
-	if (typeid(key).name() == str) {
-		char * p = (char*)malloc(keyLen);
-		memcpy(p, kk, keyLen);
-		string s(p);
-		k = s;
-		free(p);
-	} else {
+//	if (typeid(key).name() == str) {
+//		char * p = (char*)malloc(keyLen);
+//		memcpy(p, kk, keyLen);
+//		string s(p);
+//		k = s;
+//		free(p);
+//	} else {
 		memcpy((char*)&k, kk, keyLen);
-	}
+//	}
 	//移动
 	for (unsigned int i = index; i < count; i++) {
 		memmove(d0, d1, len);
@@ -1641,18 +1691,18 @@ void Treenode<key,value>::addRightNodeData_Inner(Treenode<key, value> * rightNod
 	char * left = data + len*count + valueLen;
 
 	//先把k加到自身后面
-	string str = typeid(string).name();
-	if (typeid(key).name() == str) {
-		char * p = (char*)malloc(keyLen);
-		const char * s = k.c_str();
-		memcpy(p, s, k.size());
-		p[k.size()] = '\0';
-		memcpy(left, p, keyLen);
-		free(p);
+//	string str = typeid(string).name();
+//	if (typeid(key).name() == str) {
+//		char * p = (char*)malloc(keyLen);
+//		const char * s = k.c_str();
+//		memcpy(p, s, k.size());
+//		p[k.size()] = '\0';
+//		memcpy(left, p, keyLen);
+//		free(p);
 //		free(s);
-	} else {
+//	} else {
 		memcpy(left, (char*)&k, keyLen);
-	}
+//	}
 	left += keyLen;
 	int rightCount = rightNode->getCount();
 	char * rightData = rightNode->getData();
@@ -1681,18 +1731,18 @@ void Treenode<key,value>::addLeftNodeData_Inner(Treenode<key, value> * leftNode,
 	memcpy(d0, leftData, len*leftCount + valueLen);		//注意这个valueLen
 	d0 += len*leftCount;
 	//之后再放k
-	string str = typeid(string).name();
-	if (typeid(key).name() == str) {
-		char * p = (char*)malloc(keyLen);
-		const char * s = k.c_str();
-		memcpy(p, s, k.size());
-		p[k.size()] = '\0';
-		memcpy(d0, p, keyLen);
-		free(p);
+//	string str = typeid(string).name();
+//	if (typeid(key).name() == str) {
+//		char * p = (char*)malloc(keyLen);
+//		const char * s = k.c_str();
+//		memcpy(p, s, k.size());
+//		p[k.size()] = '\0';
+//		memcpy(d0, p, keyLen);
+//		free(p);
 //		free(s);
-	} else {
+//	} else {
 		memcpy(d0, (char*)&k, keyLen);
-	}
+//	}
 	count += (leftCount + 1);
 	change = true;
 }
@@ -2008,18 +2058,18 @@ void Treenode<key, value>::updataKey(key k, value v) {
 	int len = keyLen + valueLen;
 	char * d = data + len*(n - 1) + valueLen;
 	//替换k
-	string str = typeid(string).name();
-	if (typeid(key).name() == str) {
-		char * kk = (char*)malloc(keyLen);
-		const char * a = k.c_str();
-		memcpy(kk, a, k.size());
-		kk[k.size()] = '\0';
-		memcpy(d, kk, keyLen);
-		free(kk);
+//	string str = typeid(string).name();
+//	if (typeid(key).name() == str) {
+//		char * kk = (char*)malloc(keyLen);
+//		const char * a = k.c_str();
+//		memcpy(kk, a, k.size());
+//		kk[k.size()] = '\0';
+//		memcpy(d, kk, keyLen);
+//		free(kk);
 //		free(a);
-	} else {
+//	} else {
 		memcpy(d, (char*)&k, keyLen);
-	}
+//	}
 }
 /**
  * 将 v0 改成 v1
@@ -2068,23 +2118,23 @@ void Treenode<key, value>::printTreeNode() {
 	key k;
 	value v;
 	char * d = data;
-	bool flag = false;
-	char * kk = (char*)malloc(keyLen);
+//	bool flag = false;
+//	char * kk = (char*)malloc(keyLen);
 
-	string str = typeid(string).name();
-	if (typeid(key).name() == str) {
-		flag = true;
-	}
+//	string str = typeid(string).name();
+//	if (typeid(key).name() == str) {
+//		flag = true;
+//	}
 
 	for (unsigned int i = 0; i < count; i++) {
 		memcpy((char*)&v, d, valueLen);
 		d += valueLen;
-		if (flag) {
-			memcpy(kk, d, keyLen);
-			k = string(kk);
-		} else {
+//		if (flag) {
+//			memcpy(kk, d, keyLen);
+//			k = string(kk);
+//		} else {
 			memcpy((char*)&k, d, keyLen);
-		}
+//		}
 		d += keyLen;
 		cout << k << " " << v << endl;
 	}

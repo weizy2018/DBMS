@@ -222,6 +222,49 @@ bool Dictionary::addIndex(string key, string indexName) {
 	return ret.second;
 }
 
+//删除的时候还需要顺便把 indexs 对应的也要删除
+void Dictionary::delIntIndex(string key) {
+	//先取出来delete后再删，防止内存泄露
+	auto it = intIndex.find(key);
+	if (it != intIndex.end()) {
+		Bplustree<int, unsigned long int> * tree = it->second;
+		delete tree;
+	}
+	intIndex.erase(key);
+	indexs.erase(key);
+	change = true;
+}
+void Dictionary::delFloatIndex(string key) {
+	auto it = floatIndex.find(key);
+	if (it != floatIndex.end()) {
+		Bplustree<float, unsigned long int> * tree = it->second;
+		delete tree;
+	}
+	floatIndex.erase(key);
+	indexs.erase(key);
+	change = true;
+}
+void Dictionary::delDoubleIndex(string key) {
+	auto it = doubleIndex.find(key);
+	if (it != doubleIndex.end()) {
+		Bplustree<double, unsigned long int>  * tree = it->second;
+		delete tree;
+	}
+	doubleIndex.erase(key);
+	indexs.erase(key);
+	change = true;
+}
+void Dictionary::delStringIndex(string key) {
+	auto it = stringIndex.find(key);
+	if (it != stringIndex.end()) {
+		BPlusTree<string, unsigned long int> * tree = it->second;
+		delete tree;
+	}
+	stringIndex.erase(key);
+	indexs.erase(key);
+	change = true;
+}
+
 BPlusTree<string, unsigned long int> * Dictionary::getStringIndex(const string tableName, const string colName) {
 	BPlusTree<string, unsigned long int> * tree = nullptr;
 	string key(tableName);

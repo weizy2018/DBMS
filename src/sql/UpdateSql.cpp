@@ -9,8 +9,10 @@
 #include "../head/Dictionary.h"
 #include "../head/DBMS.h"
 #include "../exception/head/Error.h"
+#include "../tools/head/CalTime.h"
 
 #include <iostream>
+#include <iomanip>
 
 UpdateSql::UpdateSql(const vector<string> ws) : words(ws) {
 	// TODO Auto-generated constructor stub
@@ -48,6 +50,8 @@ void UpdateSql::execute() {
 
 	handleWhere();
 	checkWhere(rel);
+
+	update(rel);
 
 //	cout << "expression:" << endl;
 //	for (unsigned int i = 0; i < exprs.size(); i++) {
@@ -200,8 +204,11 @@ void UpdateSql::checkWhere(Relation * rel) {
 }
 
 void UpdateSql::update(Relation * rel) {
+	CalTime::getCalTimeInst()->setStartTime();
+	CalTime::getCalTimeInst()->resetRow();
+
 	int index = checkIndex();
-	if (index != 1) {
+	if (index != -1) {
 		/*
 		 * 使用索引查询更新
 		 */
@@ -299,6 +306,11 @@ void UpdateSql::update(Relation * rel) {
 			updateBlock(block, rel, false);
 		}
 	}
+	CalTime::getCalTimeInst()->setEndTime();
+	cout << "Update OK, ";
+	cout << CalTime::getCalTimeInst()->getRow() << " rows affected (";
+	cout << fixed << setprecision(2) << CalTime::getCalTimeInst()->getTime() << " sec)" << endl;
+	cout << endl;
 }
 //还需要考虑如果更新的列已经创建了索引的情况
 void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
@@ -307,6 +319,7 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 	vector<bool> updatedFlag;
 	vector<Tuple *> removedTuples;		//被更新的元组
 	bool updateFlag = false;			//确定该块是否需要更新的标志
+	bool hasIndex = false;				//如果有索引，更新为true
 	for (auto tup = tuples.begin(); tup != tuples.end(); tup++) {
 		bool flag = true;
 		for (unsigned int k = 0; k < conditions.size(); k++) {
@@ -336,6 +349,16 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 						try {
 							int value = stoi(exprs[exp]->right);
 							tu->addInteger(value);
+							//如果创建了索引需要从索引中删除
+							string attr = rel->getAttribute(t);
+							Bplustree<int, unsigned long int> * tree =
+									Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								hasIndex = true;
+								BasicType * tupBasic = (*tup)->getTupleBasicType(t);
+								int * intData = (int*)tupBasic->getData();
+								tree->remove(*intData, block->getBlockId());
+							}
 						} catch (invalid_argument & e) {
 							string error("Cannot convert \'");
 							error.append(exprs[exp]->right);
@@ -346,6 +369,15 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 						try {
 							float value = stof(exprs[exp]->right);
 							tu->addFload(value);
+							string attr = rel->getAttribute(t);
+							Bplustree<float, unsigned long int> * tree =
+									Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								hasIndex = true;
+								BasicType * tupBasic = (*tup)->getTupleBasicType(t);
+								float * floatData = (float*)tupBasic->getData();
+								tree->remove(*floatData, block->getBlockId());
+							}
 						} catch (invalid_argument & e) {
 							string error("Cannot convert \'");
 							error.append(exprs[exp]->right);
@@ -356,6 +388,15 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 						try {
 							double value = stod(exprs[exp]->right);
 							tu->addDouble(value);
+							string attr = rel->getAttribute(t);
+							Bplustree<double, unsigned long int> * tree =
+									Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								hasIndex = true;
+								BasicType * tupBasic = (*tup)->getTupleBasicType(t);
+								double * doubleData = (double*)tupBasic->getData();
+								tree->remove(*doubleData, block->getBlockId());
+							}
 						} catch (invalid_argument & e) {
 							string error("Cannot convert \'");
 							error.append(exprs[exp]->right);
@@ -370,6 +411,15 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 							throw Error(error);
 						} else {
 							tu->addChar(exprs[exp]->right.c_str(), rel->getTypeValue(t));
+							string attr = rel->getAttribute(t);
+							BPlusTree<string, unsigned long int> * tree =
+									Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								hasIndex = true;
+								BasicType * tupBasic = (*tup)->getTupleBasicType(t);
+								char * charData = tupBasic->getData();
+								tree->remove(charData, block->getBlockId());
+							}
 						}
 					} else if (type == Global::VARCHAR) {
 						if (exprs[exp]->right.length() > (unsigned int) rel->getTypeValue(t)) {
@@ -379,11 +429,20 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 							throw Error(error);
 						} else {
 							tu->addVarchar(exprs[exp]->right.c_str(), exprs[exp]->right.length());
+							string attr = rel->getAttribute(t);
+							BPlusTree<string, unsigned long int> * tree =
+									Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								hasIndex = true;
+								BasicType * tupBasic = (*tup)->getTupleBasicType(t);
+								char * charData = tupBasic->getData();
+								tree->remove(charData, block->getBlockId());
+							}
 						}
 					}
 				} else {
 					/*
-					 * 保持原内容不变
+					 * 保持元组内元素不变
 					 */
 					BasicType * basic = (*tup)->getTupleBasicType(t);
 					if (type == Global::INTEGER) {
@@ -408,6 +467,7 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 			updatedTuples.push_back(tu);
 			removedTuples.push_back(*tup);			//把原来的元组放入待删除的列表中
 			updatedFlag.push_back(true);
+			CalTime::getCalTimeInst()->addRow();
 		} else {
 			/*
 			 * 该元素不在更新的列中，把原有内容复制到新的元组中
@@ -427,53 +487,252 @@ void UpdateSql::updateBlock(Block * block, Relation * rel, bool lastBlock) {
 		 * 如果不是最后一块更新后超出了块的大小，先考虑最后一块能不能放下，如果不能新建一块
 		 */
 		block->clearBlock();
-
-		for (unsigned int tups = 0; tups < updatedTuples.size(); tups++) {
-			if (block->getFreespace() > (int)updatedTuples[tups]->getTupLength()) {
-				block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
-			} else {
-				if (lastBlock) {		//如果满的这块是最后一块，则需要新建一块
-					block->writeBack();						//先把之前放满的那块放入磁盘中,然后再新建一块
-					int totalBlock = rel->getTotalBlock();
-					block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
-					block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
-					//放入LRU
-					DBMS::getDBMSInst()->putBlock(rel->getRelationName(), block->getBlockId(), block);
-
-					totalBlock += 1;
-					rel->setTotalBlock(totalBlock);
-					Dictionary::getDictionary()->setChange(true);
-				} else {
-					//如果满的这块不是最后一块，则先看最后一块是否还能放入，不能的话再新建一块
-					int lastBlockId = rel->getTotalBlock() - 1;
-					//Block * block = DBMS::getDBMSInst()->getBlock(words[1], *it);
-					block = DBMS::getDBMSInst()->getBlock(rel->getRelationName(), lastBlockId);
-					if (block == nullptr) {
-						block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), lastBlockId);
-						DBMS::getDBMSInst()->putBlock(rel->getRelationName(), lastBlockId, block);
+		unsigned int index;
+		//放到原来的块中
+		for (index = 0; index < updatedTuples.size(); index++) {
+			if (block->getFreespace() > (int)updatedTuples[index]->getTupLength()) {
+				block->addTuple(updatedTuples[index]->getResult(), updatedTuples[index]->getTupLength());
+				//如果加入的元组是更新过的，需要检查是否在某些列上创建了索引，如果创建了则需从新加入索引
+				if (updatedFlag[index] && hasIndex) {
+					for (int k = 0; k < rel->getTotalProperty(); k++) {
+						string attr = rel->getAttribute(k);
+						int type = rel->getTypeName(k);
+						BasicType * basic = updatedTuples[index]->getTupleBasicType(k);
+						if (type == Global::INTEGER) {
+							Bplustree<int, unsigned long int> * tree =
+									Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								int * intData = (int*)basic->getData();
+								tree->put(*intData, block->getBlockId());
+							}
+						} else if (type == Global::FLOAT) {
+							Bplustree<float, unsigned long int> * tree =
+									Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								float * floatData = (float*)basic->getData();
+								tree->put(*floatData, block->getBlockId());
+							}
+						} else if (type == Global::DOUBLE) {
+							Bplustree<double, unsigned long int> * tree =
+									Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								double * doubleData = (double*)basic->getData();
+								tree->put(*doubleData, block->getBlockId());
+							}
+						} else {	//char、varchar
+							BPlusTree<string, unsigned long int> * tree =
+									Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+							if (tree != nullptr) {
+								tree->put(basic->getData(), block->getBlockId());
+							}
+						}
 					}
-					lastBlock = true;	//标志以后放入的是放在最后一块中
-					//如果最后一块也放不下了，需要新建一块
-					if (block->getFreespace() > (int)updatedTuples[tups]->getTupLength()) {
-						//能放下
-						block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
+				}//if (updatedFlag[index] && hasIndex)
+			} else {	//if (block->getFreespace() > (int)updatedTuples[index]->getTupLength())
+				break;
+			}
+		}
+		//更新后超出了块的大小
+		if (index < updatedTuples.size()) {
+			if (lastBlock) {					//如果更新的刚后是最后一块的内容,则需要新建一块，直接默认新建的这一块能放完剩下的元组
+				block->writeBack();
+				int totalBlock = rel->getTotalBlock();
+				int oldBlockId = block->getBlockId();
+
+				block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
+				DBMS::getDBMSInst()->putBlock(rel->getRelationName(), block->getBlockId(), block);
+				totalBlock += 1;
+				rel->setTotalBlock(totalBlock);
+				Dictionary::getDictionary()->setChange(true);
+				//为了简单起见，默认新建的这一块能放完剩下的元组... (实在没时间了)
+				while (index < updatedTuples.size()) {
+					//新建一块后需要考虑之前元组在原来那块中没有被修改的，需要先删除后再从新加入
+					//如果是之前修改过的，由于之前已经从索引中删除了，只需向索引中加入新的即可
+					block->addTuple(updatedTuples[index]->getResult(), updatedTuples[index]->getTupLength());
+					//没被更新的被放入了新建的块: 先从索引中删除，后放入索引
+					if (!updatedFlag[index]) {
+						if (hasIndex) {
+							for (int i = 0; i < rel->getTotalProperty(); i++) {
+								string attr = rel->getAttribute(i);
+								BasicType * basic = updatedTuples[index]->getTupleBasicType(i);
+
+								if (rel->getTypeName(i) == Global::INTEGER) {
+									Bplustree<int, unsigned long int> * tree =
+											Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										int * intData = (int*)basic->getData();
+										tree->remove(*intData, oldBlockId);
+										tree->put(*intData, block->getBlockId());
+									}
+								} else if (rel->getTypeName(i) == Global::FLOAT) {
+									Bplustree<float, unsigned long int> * tree =
+											Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										float * floatData = (float*)basic->getData();
+										tree->remove(*floatData, oldBlockId);
+										tree->put(*floatData, block->getBlockId());
+									}
+								} else if (rel->getTypeName(i) == Global::DOUBLE) {
+									Bplustree<double, unsigned long int> * tree =
+											Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										double * doubleData = (double*)basic->getData();
+										tree->remove(*doubleData, oldBlockId);
+										tree->put(*doubleData, block->getBlockId());
+									}
+								} else {
+									BPlusTree<string, unsigned long int> * tree =
+											Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										char * data = basic->getData();
+										tree->remove(data, oldBlockId);
+										tree->put(data, block->getBlockId());
+									}
+								}
+							}
+						}
+					} else {	//if (!updatedFlag[index])
+						//被更新过的，只需加入索引即可
+						if (hasIndex) {
+							for (int i = 0; i < rel->getTotalProperty(); i++) {
+								string attr = rel->getAttribute(i);
+								BasicType * basic = updatedTuples[index]->getTupleBasicType(i);
+								if (rel->getTypeName(i) == Global::INTEGER) {
+									Bplustree<int, unsigned long int> * tree =
+											Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										int * key = (int*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+								} else if (rel->getTypeName(i) == Global::FLOAT) {
+									Bplustree<float, unsigned long int> * tree =
+											Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										float * key = (float*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+								} else if (rel->getTypeName(i) == Global::DOUBLE) {
+									Bplustree<double, unsigned long int> * tree =
+											Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										double * key = (double*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+								} else {
+									BPlusTree<string, unsigned long int> * tree =
+											Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										tree->put(basic->getData(), block->getBlockId());
+									}
+								}
+							}
+						}
+					}
+					index++;
+				}//while (index < updatedTuples.size())
+			} else {							//如果不是最后一块，则先考虑能不能在最后一块放入
+				block->writeBack();
+				int oldBlockId = block->getBlockId();
+				int lastBlockId = rel->getTotalBlock() - 1;
+				block = DBMS::getDBMSInst()->getBlock(rel->getRelationName(), lastBlockId);
+				if (block == nullptr) {
+					block = rel->getBlock(DBMS::getDBMSInst()->getCurrentDatabase(), lastBlockId);
+					DBMS::getDBMSInst()->putBlock(rel->getRelationName(), lastBlockId, block);
+				}
+				while (index < updatedTuples.size()) {
+					if (block->getFreespace() > (int)updatedTuples[index]->getTupLength()) {
+						block->addTuple(updatedTuples[index]->getResult(), updatedTuples[index]->getTupLength());
+						if (!updatedFlag[index] && hasIndex) {
+							//先移除后加入
+							for (int i = 0; i < rel->getTotalProperty(); i++) {
+								string attr = rel->getAttribute(i);
+								BasicType * basic = updatedTuples[index]->getTupleBasicType(i);
+								if (rel->getTypeName(i) == Global::INTEGER) {
+									Bplustree<int, unsigned long int> * tree =
+											Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										int * key = (int*)basic->getData();
+										tree->remove(*key, oldBlockId);
+										tree->put(*key, block->getBlockId());
+									}
+
+								} else if (rel->getTypeName(i) == Global::FLOAT) {
+									Bplustree<float, unsigned long int> * tree =
+											Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										float * key = (float*)basic->getData();
+										tree->remove(*key, oldBlockId);
+										tree->put(*key, block->getBlockId());
+									}
+
+								} else if (rel->getTypeName(i) == Global::DOUBLE) {
+									Bplustree<double, unsigned long int> * tree =
+											Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										double * key = (double*)basic->getData();
+										tree->remove(*key, oldBlockId);
+										tree->put(*key, block->getBlockId());
+									}
+								} else {
+									BPlusTree<string, unsigned long int> * tree =
+											Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										tree->remove(basic->getData(), oldBlockId);
+										tree->put(basic->getData(), oldBlockId);
+									}
+								}
+							}
+						} else if (updatedFlag[index] && hasIndex) {
+							//直接加入
+							for (int i = 0; i < rel->getTotalProperty(); i++) {
+								string attr = rel->getAttribute(i);
+								BasicType * basic = updatedTuples[index]->getTupleBasicType(i);
+								if (rel->getTypeName(i) == Global::INTEGER) {
+									Bplustree<int, unsigned long int> * tree =
+											Dictionary::getDictionary()->getIntIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										int * key = (int*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+
+								} else if (rel->getTypeName(i) == Global::FLOAT) {
+									Bplustree<float, unsigned long int> * tree =
+											Dictionary::getDictionary()->getFloatIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										float * key = (float*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+
+								} else if (rel->getTypeName(i) == Global::DOUBLE) {
+									Bplustree<double, unsigned long int> * tree =
+											Dictionary::getDictionary()->getDoubleIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										double * key = (double*)basic->getData();
+										tree->put(*key, block->getBlockId());
+									}
+								} else {
+									BPlusTree<string, unsigned long int> * tree =
+											Dictionary::getDictionary()->getStringIndex(rel->getRelationName(), attr);
+									if (tree != nullptr) {
+										tree->put(basic->getData(), block->getBlockId());
+									}
+								}
+							}
+						}
 					} else {
-						//不能放下
-						block->writeBack();						//先把之前放满的那块放入磁盘中,然后再新建一块
+						block->writeBack();
 						int totalBlock = rel->getTotalBlock();
 						block = new Block(totalBlock, rel, Dictionary::getDictionary()->getBlockSize());
-						block->addTuple(updatedTuples[tups]->getResult(), updatedTuples[tups]->getTupLength());
-						//放入LRU
-						DBMS::getDBMSInst()->putBlock(rel->getRelationName(), block->getBlockId(), block);
-
 						totalBlock += 1;
 						rel->setTotalBlock(totalBlock);
 						Dictionary::getDictionary()->setChange(true);
+						index--;		//由于刚才放不下了，索引新建一块后从新放刚刚的那个元组,需要减1
 					}
+					index++;
 				}
 			}
 		}
-	}
+	}//if (updateFlag) {
 	//删除tuples
 	for (auto it = updatedTuples.begin(); it != updatedTuples.end(); it++) {
 		delete (*it);

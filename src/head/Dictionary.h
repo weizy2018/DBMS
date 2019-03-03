@@ -73,6 +73,11 @@ public:
 	void addFloatIndex(string key, Bplustree<float, unsigned long int> * value);
 	void addDoubleIndex(string key, Bplustree<double, unsigned long int> * value);
 
+	void delIntIndex(string key);
+	void delFloatIndex(string key);
+	void delDoubleIndex(string key);
+	void delStringIndex(string key);
+
 	bool addIndex(string key, string indexName);
 public:
 	BPlusTree<string, unsigned long int> * getStringIndex(const string tableName, const string colName);
@@ -83,6 +88,7 @@ public:
 public:
 	bool isIndex(string tableName, string colName);
 	string getIndexName(string tableName, string colName);
+
 private:
     vector<Relation*> relations;
     const char * curDatabaseName;
