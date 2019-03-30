@@ -88,7 +88,6 @@ void DBMS::loadDatabases() {
 }
 
 void DBMS::initialDictionary(const char * dicName) {
-//	cout << "DBMS::inititalDictionary()" << endl;
 	Dictionary::getDictionary()->setCurDatabaseName(dicName);
     FILE * dicFile;
     //eg: data/school/school.desc
@@ -282,11 +281,11 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	//Relation(unsigned int totalBlock, int totalProperty, char * relName, char * relFileName)
 	//初始化totalBlock定义为0
 	Relation * relation = new Relation(0, attrs.size(), relName, relFileName);
-	for (auto it = attrs.begin(); it != attrs.end(); it++) {
-		string attrName = it->first;
-		pair<string, int> typeValue = it->second;
-		cout << attrName << " " << typeValue.first << " " << typeValue.second << endl;
-	}
+//	for (auto it = attrs.begin(); it != attrs.end(); it++) {
+//		string attrName = it->first;
+//		pair<string, int> typeValue = it->second;
+//		cout << attrName << " " << typeValue.first << " " << typeValue.second << endl;
+//	}
 
 	for (auto it = attrs.begin(); it != attrs.end(); it++) {
 		string attrName = it->first;
@@ -325,6 +324,7 @@ void DBMS::createTable(char * relName, vector<pair<string, pair<string, int>>> a
 	fclose(relFile);
 	//跟新.rel数据库字典文件
 	Dictionary::getDictionary()->writeBack();
+	cout << "table create success" << endl << endl;
 }
 void DBMS::createIndex(const string indexName, const string tableName, const string attrName) {
 	if (currentDatabase == "") {
@@ -405,7 +405,7 @@ void DBMS::createIndex(const string indexName, const string tableName, const str
 	}
 	Dictionary::getDictionary()->writeBack();
 
-	cout << "index create success" << endl;
+	cout << "index create success" << endl << endl;
 }
 /*
  * 数据的插入

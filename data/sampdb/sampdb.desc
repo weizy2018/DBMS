@@ -1,0 +1,51 @@
+5
+0
+4
+
+1
+3
+student
+student.rel
+name sex student_id 
+varchar 20
+char 2
+int 4
+
+2
+3
+score
+score.rel
+student_id event_id score 
+int 4
+int 4
+int 4
+
+1
+2
+absence
+absence.rel
+student_id date 
+int 4
+char 12
+
+1
+3
+grade_event
+grade_event.rel
+date category event_id 
+char 12
+char 2
+int 4
+
+363
+5
+data
+data.rel
+id year state county drug_reports 
+int 4
+int 4
+varchar 4
+varchar 45
+int 4
+
+

@@ -62,6 +62,7 @@ void DropSql::execute() {
 			} else {
 				Dictionary::getDictionary()->delStringIndex(key);
 			}
+			cout << "index drop success" << endl << endl;
 		} else {
 			string error("There is no index \'");
 			error.append(indexName);

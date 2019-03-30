@@ -1140,10 +1140,10 @@ void Bplustree<key, value>::split(Treenode<key, value> * leafNode) {
 
 template<typename key, typename value>
 Treenode<key, value> * Bplustree<key, value>::getParent(key k, value childId) {
-	cout << "Bplustree::getParent() k = " << k << " childId = " << childId << endl;
+//	cout << "Bplustree::getParent() k = " << k << " childId = " << childId << endl;
 	rootNode = getRootNode();
 	if (rootNode->getSelf() == childId) {	//只有根结点
-		cout << "Bplustree::getParent() only root node" << endl;
+//		cout << "Bplustree::getParent() only root node" << endl;
 		return rootNode;
 	}
 	FILE * indexFile;

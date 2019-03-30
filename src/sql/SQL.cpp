@@ -27,6 +27,7 @@
 #include "head/ShowSql.h"
 #include "head/DescSql.h"
 #include "head/UpdateSql.h"
+#include "head/DropSql.h"
 
 SQL * SQL::sqlInst = nullptr;
 
@@ -173,7 +174,7 @@ void SQL::execute() {
 		executeStatus = new UpdateSql(words);
 
 	} else if (words[0] == DELETE) {
-		cout << "delete" << endl;
+		cout << "相应功能还没能完成" << endl;
 
 	} else if (words[0] == USE) {
 		executeStatus = new UseSql(words);
@@ -184,14 +185,12 @@ void SQL::execute() {
 	} else if (words[0] == DESC) {
 		executeStatus = new DescSql(words);
 
-	} else if (words[0] == EXIT) {
+	} else if (words[0] == EXIT || words[0] == "quit") {
 		DBMS::releaseDBMSInst();
 		finish = true;
 		cout << "Bye" << endl;
 	} else if (words[0] == DROP) {
-		cout << "drop" << endl;
-	} else if (words[0] == STATUS) {		//用select database()代替
-		cout << "status" << endl;
+		executeStatus = new DropSql(words);
 	} else {
 		throw Error("the word \'" + words[0] + "\' is undefined");
 	}

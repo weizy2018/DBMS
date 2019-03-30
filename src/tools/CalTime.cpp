@@ -6,6 +6,9 @@
  */
 
 #include "head/CalTime.h"
+#include <iostream>
+using namespace std;
+
 
 CalTime * CalTime::tm = nullptr;
 
@@ -37,7 +40,7 @@ void CalTime::setEndTime() {
 	endTime = clock();
 }
 double CalTime::getTime() {
-	return (double)(endTime - startTime)/1000;
+	return (double)(endTime - startTime)/CLOCKS_PER_SEC;
 }
 
 void CalTime::resetRow() {

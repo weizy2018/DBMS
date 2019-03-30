@@ -20,6 +20,9 @@ public:
 	virtual ~InsertSql();
 public:
 	void execute();
+
+	void insertData();
+
 private:
 	const vector<string> words;
 };

@@ -1,5 +1,5 @@
 2
-0
+1
 4
 
 1
@@ -21,3 +21,4 @@ varchar 25
 double 8
 
 
+student name student_name
