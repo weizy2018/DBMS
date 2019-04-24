@@ -9,6 +9,8 @@
 #define TOOLS_HEAD_Bplustree_H_
 
 
+#include "BPlusTree2.h"
+
 #include <iostream>
 #include <string>
 #include <string.h>
@@ -18,7 +20,6 @@
 #include <vector>
 #include <set>
 
-#include "Bplustree.h"
 #include "../../exception/head/KeyNotFoundException.h"
 //#include "LRUCacheIndex.h"
 #include "lru.h"
